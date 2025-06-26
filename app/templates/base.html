@@ -1,0 +1,27 @@
+{% with messages = get_flashed_messages(with_categories=true) %}
+  {% if messages %}
+    <ul>
+      {% for category, message in messages %}
+        <li class="{{ category }}">{{ message }}</li>
+      {% endfor %}
+    </ul>
+  {% endif %}
+{% endwith %}
+
+
+<!doctype html>
+<html lang="uk">
+  <head>
+    <meta charset="UTF-8">
+    <title>{% block title %}Notary App{% endblock %}</title>
+  </head>
+  <body>
+    <header>
+      <h1>Нотаріальна аплікація</h1>
+    </header>
+
+    <main>
+      {% block content %}{% endblock %}
+    </main>
+  </body>
+</html>
