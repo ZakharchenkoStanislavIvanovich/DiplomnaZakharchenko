@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container mt-4">
+    <h2 class="mb-4">Запис на прийом до нотаріуса</h2>
+    <form method="POST">
+        {{ form.hidden_tag() }}
+
+        <div class="mb-3">
+            {{ form.name.label(class="form-label") }}
+            {{ form.name(class="form-control", placeholder="Введіть своє ім’я") }}
+        </div>
+
+        <div class="mb-3">
+            {{ form.email.label(class="form-label") }}
+            {{ form.email(class="form-control", placeholder="Введіть свій email") }}
+        </div>
+
+        <div class="mb-3">
+            {{ form.service_id.label(class="form-label") }}
+            {{ form.service_id(class="form-select") }}
+        </div>
+
+        <div class="mb-3">
+            {{ form.schedule_id.label(class="form-label") }}
+            {{ form.schedule_id(class="form-select") }}
+        </div>
+
+        {{ form.submit(class="btn btn-primary") }}
+    </form>
+</div>
+{% endblock %}

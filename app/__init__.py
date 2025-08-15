@@ -2,9 +2,11 @@ from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
 from config import Config
+from flask import Blueprint
 
 db = SQLAlchemy()
 migrate = Migrate()
+bp = Blueprint('appointments', __name__)
 
 def create_app(config_class=Config):
     app = Flask(__name__)
@@ -27,5 +29,6 @@ def create_app(config_class=Config):
     app.register_blueprint(admin_bp, url_prefix='/admin')
 
     from app import models
-
+    from app.appointments import routes
+    
     return app
