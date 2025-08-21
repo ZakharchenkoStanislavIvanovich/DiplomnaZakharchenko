@@ -1,31 +1,99 @@
 {% extends "base.html" %}
+
+{% block title %}Запис на прийом{% endblock %}
+
 {% block content %}
-<div class="container mt-4">
-    <h2 class="mb-4">Запис на прийом до нотаріуса</h2>
-    <form method="POST">
-        {{ form.hidden_tag() }}
+<h2>Запис на прийом</h2>
 
-        <div class="mb-3">
-            {{ form.name.label(class="form-label") }}
-            {{ form.name(class="form-control", placeholder="Введіть своє ім’я") }}
-        </div>
+<form method="POST">
+    {{ form.hidden_tag() }}
 
-        <div class="mb-3">
-            {{ form.email.label(class="form-label") }}
-            {{ form.email(class="form-control", placeholder="Введіть свій email") }}
-        </div>
+    <!-- Ім'я -->
+    <div class="mb-3">
+        {{ form.name.label(class="form-label") }}
+        {{ form.name(class="form-control") }}
+        {% for error in form.name.errors %}
+        <div class="text-danger small">{{ error }}</div>
+        {% endfor %}
+    </div>
 
-        <div class="mb-3">
-            {{ form.service_id.label(class="form-label") }}
-            {{ form.service_id(class="form-select") }}
-        </div>
+    <!-- Email -->
+    <div class="mb-3">
+        {{ form.email.label(class="form-label") }}
+        {{ form.email(class="form-control") }}
+        {% for error in form.email.errors %}
+        <div class="text-danger small">{{ error }}</div>
+        {% endfor %}
+    </div>
 
-        <div class="mb-3">
-            {{ form.schedule_id.label(class="form-label") }}
-            {{ form.schedule_id(class="form-select") }}
-        </div>
+    <!-- Послуга -->
+    <div class="mb-3">
+        {{ form.service_id.label(class="form-label") }}
+        {{ form.service_id(class="form-select") }}
+        {% for error in form.service_id.errors %}
+        <div class="text-danger small">{{ error }}</div>
+        {% endfor %}
+    </div>
 
-        {{ form.submit(class="btn btn-primary") }}
-    </form>
-</div>
+    <!-- Дата -->
+    <div class="mb-3">
+        {{ form.date.label(class="form-label") }}
+        {{ form.date(class="form-control", id="date") }}
+        {% for error in form.date.errors %}
+        <div class="text-danger small">{{ error }}</div>
+        {% endfor %}
+    </div>
+
+    <!-- Час -->
+    <div class="mb-3">
+        {{ form.time_id.label(class="form-label") }}
+        {{ form.time_id(class="form-select", id="time_id") }}
+        {% for error in form.time_id.errors %}
+        <div class="text-danger small">{{ error }}</div>
+        {% endfor %}
+    </div>
+
+    {{ form.submit(class="btn btn-primary") }}
+</form>
+
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        const dateInput = document.getElementById("date");
+        const timeSelect = document.getElementById("time_id");
+
+        // якщо користувач відразу обрав дату — підвантажити часи
+        function loadTimesFor(dateStr) {
+            timeSelect.innerHTML = '<option value="">Завантаження...</option>';
+            fetch(`/appointments/available_times?date=${dateStr}`)
+                .then(response => response.json())
+                .then(times => {
+                    timeSelect.innerHTML = '<option value="">Оберіть час</option>';
+                    if (!times || times.length === 0) {
+                        const option = document.createElement("option");
+                        option.textContent = "Немає доступних годин";
+                        option.disabled = true;
+                        timeSelect.appendChild(option);
+                    } else {
+                        times.forEach(t => {
+                            const option = document.createElement("option");
+                            option.value = t.id;        // ID у БД
+                            option.textContent = t.display; // 10:00, 11:00...
+                            timeSelect.appendChild(option);
+                        });
+                    }
+                });
+        }
+
+        dateInput.addEventListener("change", function () {
+            const selectedDate = this.value;
+            if (!selectedDate) return;
+            loadTimesFor(selectedDate);
+        });
+
+        // якщо браузер автозаповнив дату — одразу підтягнемо часи
+        if (dateInput.value) {
+            loadTimesFor(dateInput.value);
+        }
+    });
+</script>
 {% endblock %}

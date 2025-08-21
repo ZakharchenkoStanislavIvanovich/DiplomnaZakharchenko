@@ -1,73 +1,81 @@
-from app.appointments import bp
-from flask import render_template, redirect, url_for, flash, request, jsonify
+from flask import render_template, request, redirect, url_for, flash, jsonify
 from app import db
-from app.models import Client, Appointment, NotarySchedule, Service
-from .forms import AppointmentForm
-from datetime import date, datetime
+from app.appointments import bp
+from app.appointments.forms import AppointmentForm
+from app.models import Appointment, TimeSlot, Client
+from datetime import datetime
+
+@bp.route("/book", methods=["GET", "POST"])
+def book():
+    form = AppointmentForm()
+
+    # --- Підвантажити доступні слоти для обраної дати перед validate_on_submit
+    if request.method == "POST" and form.date.data:
+        slots = TimeSlot.query.filter_by(date=form.date.data, is_booked=False).order_by(TimeSlot.start_time).all()
+        form.time_id.choices = [(s.id, s.start_time.strftime("%H:%M")) for s in slots]
 
 
-@bp.route('/available_times')
+    if form.validate_on_submit():
+        # знайти або створити клієнта
+        client = Client.query.filter_by(email=form.email.data).first()
+        if not client:
+            client = Client(name=form.name.data, email=form.email.data)
+            db.session.add(client)
+            db.session.flush()  # отримати client.id без окремого commit
+
+        # вибраний слот
+        slot = TimeSlot.query.get(form.time_id.data)
+        if not slot or slot.is_booked:
+            flash("❌ Обраний час недоступний або вже заброньований.", "danger")
+            return redirect(url_for("appointments.book"))
+
+        # створення заявки
+        appointment = Appointment(
+            client_id=client.id,
+            service_id=form.service_id.data,
+            slot_id=slot.id,
+            status="очікує"
+        )
+        db.session.add(appointment)
+
+        # позначити слот зайнятим
+        slot.is_booked = True
+        db.session.commit()
+
+        flash("✅ Ви успішно записані на прийом!", "success")
+        return redirect(url_for("appointments.book"))
+
+    if request.method == "POST":
+        # форма не пройшла валідацію
+        flash("❌ Форма невалідна. Перевірте введені дані.", "danger")
+        # для відладки у консоль
+        print("DEBUG form errors:", form.errors)
+
+    return render_template("appointments/book.html", form=form)
+
+@bp.route("/available_times")
 def available_times():
-    """AJAX — повертає вільні години для обраної дати."""
+    """
+    Повертає JSON: список вільних слотів для обраної дати.
+    Вхід: ?date=YYYY-MM-DD
+    """
     date_str = request.args.get("date")
     if not date_str:
         return jsonify([])
 
     try:
-        date_obj = datetime.strptime(date_str, "%Y-%m-%d").date()
-    except ValueError:
+        selected_date = datetime.strptime(date_str, "%Y-%m-%d").date()
+    except Exception:
         return jsonify([])
 
-    schedules = NotarySchedule.query.filter_by(
-        schedule_date=date_obj,
-        is_available=True
-    ).all()
+    slots = (
+        TimeSlot.query
+        .filter_by(date=selected_date, is_booked=False)
+        .order_by(TimeSlot.start_time)
+        .all()
+    )
 
-    times = [s.schedule_time.strftime("%H:%M") for s in schedules]
-    return jsonify(times)
-
-
-@bp.route('/book', methods=['GET', 'POST'])
-def book():
-    """Запис клієнта через публічну форму."""
-    form = AppointmentForm()
-    form.service_id.choices = [(s.id, s.name) for s in Service.query.all()]
-
-    if form.validate_on_submit():
-        # Додаємо або отримуємо клієнта
-        client = Client.query.filter_by(email=form.email.data).first()
-        if not client:
-            client = Client(name=form.name.data, email=form.email.data)
-            db.session.add(client)
-            db.session.commit()
-
-        # Отримуємо обраний слот
-        slot = NotarySchedule.query.get(form.schedule_id.data)
-
-        if slot and slot.is_available and slot.schedule_date >= date.today():
-            exists = Appointment.query.filter_by(
-                client_id=client.id,
-                appointment_date=slot.schedule_date,
-                appointment_time=slot.schedule_time
-            ).first()
-            if exists:
-                flash("❌ Ви вже записані на цей час.", "warning")
-                return redirect(url_for('appointments.book'))
-
-            appointment = Appointment(
-                client_id=client.id,
-                service_id=form.service_id.data,
-                appointment_date=slot.schedule_date,
-                appointment_time=slot.schedule_time,
-                status='очікує'
-            )
-            db.session.add(appointment)
-            slot.is_available = False
-            db.session.commit()
-
-            flash("✅ Ви успішно записані на прийом!", "success")
-            return redirect(url_for('main.index'))
-        else:
-            flash("❌ Обраний час недоступний або вже минув", "danger")
-
-    return render_template('appointments/book.html', form=form)
+    return jsonify([
+        {"id": s.id, "display": s.start_time.strftime("%H:%M")}
+        for s in slots
+    ])

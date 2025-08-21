@@ -17,12 +17,15 @@ class Appointment(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     client_id = db.Column(db.Integer, db.ForeignKey('client.id'), nullable=False)
     service_id = db.Column(db.Integer, db.ForeignKey('service.id'), nullable=False)
-    appointment_date = db.Column(db.Date, nullable=False)
-    appointment_time = db.Column(db.Time, nullable=False)
+    slot_id = db.Column(db.Integer, db.ForeignKey('time_slot.id'), nullable=False)  # <-- нове
     status = db.Column(db.String(20), default='очікує')
 
-class NotarySchedule(db.Model):
+    client = db.relationship("Client", backref="appointments")
+    service = db.relationship("Service", backref="appointments")
+    slot = db.relationship("TimeSlot", backref="appointments")
+
+class TimeSlot(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    schedule_date = db.Column(db.Date, nullable=False)
-    schedule_time = db.Column(db.Time, nullable=False)
-    is_available = db.Column(db.Boolean, default=True)
+    date = db.Column(db.Date, nullable=False)              # для якої дати слот
+    start_time = db.Column(db.Time, nullable=False)        # година початку
+    is_booked = db.Column(db.Boolean, default=False)       # чи вже зайнятий
