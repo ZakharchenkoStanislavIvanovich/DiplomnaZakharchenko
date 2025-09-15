@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+
+{% block title %}Контакти - Твій Нотаріус{% endblock %}
+
+{% block content %}
+<div style="display: flex; flex-wrap: wrap; gap: 30px; max-width: 90%; margin: 50px 3%; color: #343a40;">
+
+    <!-- Контакти -->
+    <div style="flex: 1 1 300px; min-width: 300px;">
+        <h1 style="font-size: 2.5rem; font-weight: 700; margin-bottom: 30px;">Контакти</h1>
+
+        <p style="font-size: 1.2rem; margin-bottom: 10px;">
+            <i class="fas fa-phone" style="margin-right: 10px;"></i>Телефон: +380-67-123-45-67
+        </p>
+        <p style="font-size: 1.2rem; margin-bottom: 10px;">
+            <i class="fas fa-envelope" style="margin-right: 10px;"></i>Електронна адреса: tviy.notarius@gmail.com
+        </p>
+        <p style="font-size: 1.2rem; margin-bottom: 10px;">
+            <i class="fab fa-viber" style="margin-right: 10px;"></i>Viber: +380-67-123-45-67
+        </p>
+        <p style="font-size: 1.2rem; margin-bottom: 10px;">
+            <i class="fab fa-whatsapp" style="margin-right: 10px;"></i>WhatsApp: +380-67-123-45-67
+        </p>
+    </div>
+
+    <!-- Карта -->
+    <div style="flex: 1 1 300px; min-width: 300px; border: 2px solid #343a40; border-radius: 15px; overflow: hidden;">
+        <iframe
+            src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d2642.456234712347!2d24.681502915883875!3d48.92277617928809!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x47306b8f3f4c0c11%3A0xe6f9a8d33f631fef!2z0JrQsNC80LXQvdC40YHRgtCw0LPQuNC70LDRgdC60LjQuSDQutC-0YHRgtCw0Y8g0JjQvtC70YzQvdC40Y8g0JrQsNC80LXQvdC40YHRgtCw!5e0!3m2!1suk!2sua!4v1694778200000!5m2!1suk!2sua"
+            width="100%"
+            height="400"
+            style="border:0;"
+            allowfullscreen=""
+            loading="lazy"
+            referrerpolicy="no-referrer-when-downgrade">
+        </iframe>
+    </div>
+
+</div>
+
+<!-- Підключення Font Awesome -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+{% endblock %}

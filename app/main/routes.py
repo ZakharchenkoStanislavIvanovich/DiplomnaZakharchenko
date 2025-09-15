@@ -8,6 +8,10 @@ from app.models import Client
 def index():
     return render_template('main/index.html')
 
+@bp.route('/contacts')
+def contacts():
+    return render_template('main/contacts.html')
+
 @bp.route('/register', methods=['GET', 'POST'])
 def register():
     form = RegistrationForm()

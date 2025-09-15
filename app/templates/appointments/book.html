@@ -3,97 +3,230 @@
 {% block title %}Запис на прийом{% endblock %}
 
 {% block content %}
-<h2>Запис на прийом</h2>
 
-<form method="POST">
-    {{ form.hidden_tag() }}
+<style>
+  /* Прибираємо скрол сторінки */
+  body {
+      overflow: hidden;
+  }
+</style>
 
-    <!-- Ім'я -->
-    <div class="mb-3">
-        {{ form.name.label(class="form-label") }}
-        {{ form.name(class="form-control") }}
-        {% for error in form.name.errors %}
-        <div class="text-danger small">{{ error }}</div>
-        {% endfor %}
+<div style="display: flex; flex-wrap: wrap; gap: 30px; max-width: 95%; margin: 50px 3%;">
+
+    <!-- Ліва частина: форма -->
+    <div style="flex: 1 1 600px; min-width: 300px; color: #343a40;">
+        <h2 style="color: #343a40; font-weight: 700; margin-bottom: 30px;">Подання заявки на прийом</h2>
+
+        <form id="appointmentForm" method="POST">
+            {{ form.hidden_tag() }}
+
+            <!-- Ім'я -->
+            <div class="mb-3">
+                {{ form.name.label(class="form-label") }}
+                {{ form.name(class="form-control") }}
+                {% for error in form.name.errors %}
+                <div class="text-danger small">{{ error }}</div>
+                {% endfor %}
+            </div>
+
+            <!-- Email -->
+            <div class="mb-3">
+                {{ form.email.label(class="form-label") }}
+                {{ form.email(class="form-control") }}
+                {% for error in form.email.errors %}
+                <div class="text-danger small">{{ error }}</div>
+                {% endfor %}
+            </div>
+
+            <!-- Послуга -->
+            <div class="mb-3">
+                {{ form.service_id.label(class="form-label") }}
+                {{ form.service_id(class="form-select") }}
+                {% for error in form.service_id.errors %}
+                <div class="text-danger small">{{ error }}</div>
+                {% endfor %}
+            </div>
+
+            <!-- Дата -->
+            <div class="mb-3">
+                {{ form.date.label(class="form-label") }}
+                {{ form.date(class="form-control", id="date") }}
+                {% for error in form.date.errors %}
+                <div class="text-danger small">{{ error }}</div>
+                {% endfor %}
+            </div>
+
+            <!-- Час -->
+            <div class="mb-3">
+                {{ form.time_id.label(class="form-label") }}
+                {{ form.time_id(class="form-select", id="time_id") }}
+                {% for error in form.time_id.errors %}
+                <div class="text-danger small">{{ error }}</div>
+                {% endfor %}
+            </div>
+
+            {{ form.submit(class="btn btn-primary", id="submitButton") }}
+        </form>
     </div>
 
-    <!-- Email -->
-    <div class="mb-3">
-        {{ form.email.label(class="form-label") }}
-        {{ form.email(class="form-control") }}
-        {% for error in form.email.errors %}
-        <div class="text-danger small">{{ error }}</div>
-        {% endfor %}
+    <!-- Права частина: політика конфіденційності -->
+    <div style="flex: 1 1 400px; min-width: 300px; border: 2px solid #343a40; border-radius: 15px; 
+                padding: 20px; display: flex; flex-direction: column; max-height: 535px;">
+        <h3 style="font-weight: 700; margin-bottom: 15px;">Політика конфіденційності</h3>
+
+        <!-- Скролюваний текст -->
+        <div style="flex: 1; overflow-y: auto; padding-right: 10px; margin-bottom: 15px;">
+            <p><strong>Про нотаріуса:</strong> Цей сайт належить приватному нотаріусу у м. Івано-Франківськ. Ми дбаємо про захист персональних даних та конфіденційність користувачів. Використовуючи сайт, ви погоджуєтесь із цією політикою.</p>
+
+            <h4>1. Загальні положення</h4>
+            <ol>
+                <li>Ця політика визначає, як обробляються та захищаються ваші персональні дані.</li>
+                <li>Всі дані збираються виключно для забезпечення надання нотаріальних послуг.</li>
+                <li>Ми дотримуємось вимог чинного законодавства України щодо захисту персональних даних.</li>
+            </ol>
+
+            <h4>2. Збір персональних даних</h4>
+            <ol>
+                <li>Ми можемо збирати такі дані:
+                    <ul>
+                        <li>ПІБ користувача</li>
+                        <li>Контактний телефон</li>
+                        <li>Email</li>
+                        <li>Вибрані послуги та дата/час запису</li>
+                    </ul>
+                </li>
+                <li>Дані збираються тільки при заповненні форм на сайті або у процесі спілкування з нотаріусом.</li>
+            </ol>
+
+            <h4>3. Використання персональних даних</h4>
+            <ol>
+                <li>Персональні дані використовуються виключно для:
+                    <ul>
+                        <li>Обробки заявки на прийом</li>
+                        <li>Зв’язку з користувачем</li>
+                        <li>Інформування про послуги та зміни у графіку</li>
+                    </ul>
+                </li>
+                <li>Ми не передаємо дані третім особам без вашої згоди, крім випадків, передбачених законодавством.</li>
+            </ol>
+
+            <h4>4. Захист персональних даних</h4>
+            <ol>
+                <li>Ми використовуємо сучасні технології для захисту інформації від несанкціонованого доступу.</li>
+                <li>Всі дані зберігаються на безпечних серверах із обмеженим доступом.</li>
+                <li>У разі виявлення порушень безпеки ми вживатимемо необхідних заходів та повідомимо користувачів.</li>
+            </ol>
+
+            <h4>5. Передача даних третім особам</h4>
+            <ol>
+                <li>Дані можуть передаватися лише:
+                    <ul>
+                        <li>у випадках, передбачених законодавством України</li>
+                        <li>для забезпечення виконання нотаріальних послуг (за необхідності)</li>
+                    </ul>
+                </li>
+                <li>В інших випадках ми не передаємо ваші дані без вашої згоди.</li>
+            </ol>
+
+            <h4>6. Збереження даних</h4>
+            <ol>
+                <li>Дані зберігаються лише стільки, скільки необхідно для обробки заявки або надання послуги.</li>
+                <li>Ви маєте право вимагати видалення ваших персональних даних у будь-який час.</li>
+            </ol>
+
+            <h4>7. Права користувачів</h4>
+            <ol>
+                <li>Користувач має право:
+                    <ul>
+                        <li>Отримати інформацію про обробку своїх даних</li>
+                        <li>Виправити неточні дані</li>
+                        <li>Вимагати видалення або блокування даних</li>
+                    </ul>
+                </li>
+                <li>Для реалізації прав користувач може звертатися до нотаріуса через контактні дані на сайті.</li>
+            </ol>
+
+            <h4>8. Файли cookie</h4>
+            <ol>
+                <li>Сайт може використовувати cookie для зручності користування та аналітики.</li>
+                <li>Ви можете відмовитися від cookie у налаштуваннях браузера.</li>
+            </ol>
+
+            <h4>9. Зміни політики конфіденційності</h4>
+            <ol>
+                <li>Нотаріус залишає за собою право змінювати політику конфіденційності.</li>
+                <li>Оновлена політика публікується на сайті, і продовження використання сайту означає вашу згоду із змінами.</li>
+            </ol>
+
+            <h4>10. Контакти для запитів</h4>
+            <ol>
+                <li>Для будь-яких питань щодо політики конфіденційності можна звертатися:
+                    <ul>
+                        <li>Телефон: +380-67-123-45-67</li>
+                        <li>Email: tviy.notarius@gmail.com</li>
+                    </ul>
+                </li>
+            </ol>
+        </div>
+
+        <!-- Чекбокс всередині рамки -->
+        <div class="form-check">
+            <input class="form-check-input" type="checkbox" id="privacyCheck">
+            <label class="form-check-label" for="privacyCheck">
+                Я погоджуюся з політикою конфіденційності
+            </label>
+            <div id="privacyError" class="text-danger small" style="display:none;">Ви повинні погодитися з політикою конфіденційності.</div>
+        </div>
     </div>
 
-    <!-- Послуга -->
-    <div class="mb-3">
-        {{ form.service_id.label(class="form-label") }}
-        {{ form.service_id(class="form-select") }}
-        {% for error in form.service_id.errors %}
-        <div class="text-danger small">{{ error }}</div>
-        {% endfor %}
-    </div>
-
-    <!-- Дата -->
-    <div class="mb-3">
-        {{ form.date.label(class="form-label") }}
-        {{ form.date(class="form-control", id="date") }}
-        {% for error in form.date.errors %}
-        <div class="text-danger small">{{ error }}</div>
-        {% endfor %}
-    </div>
-
-    <!-- Час -->
-    <div class="mb-3">
-        {{ form.time_id.label(class="form-label") }}
-        {{ form.time_id(class="form-select", id="time_id") }}
-        {% for error in form.time_id.errors %}
-        <div class="text-danger small">{{ error }}</div>
-        {% endfor %}
-    </div>
-
-    {{ form.submit(class="btn btn-primary") }}
-</form>
+</div>
 
 <script>
-    document.addEventListener("DOMContentLoaded", function () {
-        const dateInput = document.getElementById("date");
-        const timeSelect = document.getElementById("time_id");
+document.addEventListener("DOMContentLoaded", function () {
+    const form = document.getElementById("appointmentForm");
+    const privacyCheck = document.getElementById("privacyCheck");
+    const privacyError = document.getElementById("privacyError");
+    const dateInput = document.getElementById("date");
+    const timeSelect = document.getElementById("time_id");
 
-        // якщо користувач відразу обрав дату — підвантажити часи
-        function loadTimesFor(dateStr) {
-            timeSelect.innerHTML = '<option value="">Завантаження...</option>';
-            fetch(`/appointments/available_times?date=${dateStr}`)
-                .then(response => response.json())
-                .then(times => {
-                    timeSelect.innerHTML = '<option value="">Оберіть час</option>';
-                    if (!times || times.length === 0) {
-                        const option = document.createElement("option");
-                        option.textContent = "Немає доступних годин";
-                        option.disabled = true;
-                        timeSelect.appendChild(option);
-                    } else {
-                        times.forEach(t => {
-                            const option = document.createElement("option");
-                            option.value = t.id;        // ID у БД
-                            option.textContent = t.display; // 10:00, 11:00...
-                            timeSelect.appendChild(option);
-                        });
-                    }
-                });
-        }
-
-        dateInput.addEventListener("change", function () {
-            const selectedDate = this.value;
-            if (!selectedDate) return;
-            loadTimesFor(selectedDate);
-        });
-
-        // якщо браузер автозаповнив дату — одразу підтягнемо часи
-        if (dateInput.value) {
-            loadTimesFor(dateInput.value);
+    // Перевірка чекбокса при сабміті
+    form.addEventListener("submit", function(e) {
+        if (!privacyCheck.checked) {
+            e.preventDefault();
+            privacyError.style.display = "block";
+        } else {
+            privacyError.style.display = "none";
         }
     });
+
+    // Підвантаження доступних годин
+    function loadTimesFor(dateStr) {
+        timeSelect.innerHTML = '<option value="">Завантаження...</option>';
+        fetch(`/appointments/available_times?date=${dateStr}`)
+            .then(response => response.json())
+            .then(times => {
+                timeSelect.innerHTML = '<option value="">Оберіть час</option>';
+                if (!times || times.length === 0) {
+                    const option = document.createElement("option");
+                    option.textContent = "Немає доступних годин";
+                    option.disabled = true;
+                    timeSelect.appendChild(option);
+                } else {
+                    times.forEach(t => {
+                        const option = document.createElement("option");
+                        option.value = t.id;
+                        option.textContent = t.display;
+                        timeSelect.appendChild(option);
+                    });
+                }
+            });
+    }
+
+    dateInput.addEventListener("change", function () {
+        if (this.value) loadTimesFor(this.value);
+    });
+
+    if (dateInput.value) loadTimesFor(dateInput.value);
+});
 </script>
 {% endblock %}

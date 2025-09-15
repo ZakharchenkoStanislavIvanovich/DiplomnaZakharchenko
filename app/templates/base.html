@@ -1,33 +1,92 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="uk">
-  <head>
-    <meta charset="UTF-8">
-    <title>{% block title %}Notary App{% endblock %}</title>
 
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-  </head>
-  <body>
-    <header>
-      <h1 class="text-center mt-3">Нотаріальна аплікація</h1>
-    </header>
+<head>
+  <meta charset="UTF-8">
+  <title>{% block title %}Нотаріус{% endblock %}</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <style>
+    .navbar {
+      background-color: #6B8E23 !important;
+    }
 
-    {% with messages = get_flashed_messages(with_categories=true) %}
-      {% if messages %}
-        <div class="container mt-3">
-          {% for category, message in messages %}
-            <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
-              {{ message }}
-              <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Закрити"></button>
-            </div>
-          {% endfor %}
-        </div>
-      {% endif %}
-    {% endwith %}
+    .navbar-brand {
+      font-family: 'Poppins', sans-serif;
+      font-weight: 900;
+      text-transform: uppercase;
+      font-size: 2rem;
+      letter-spacing: 2px;
+      color: white !important;
+    }
 
-    <main class="container mt-4">
-      {% block content %}{% endblock %}
-    </main>
+    /* Стилі для кнопок нагорі */
+    .nav-btn {
+      background-color: #343a40;
+      color: white !important;
+      padding: 8px 20px;
+      margin: 0 12px;
+      border-radius: 10px;
+      text-decoration: none;
+      font-weight: 500;
+      transition: background 0.3s, transform 0.2s;
+    }
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-  </body>
+    .nav-btn:hover {
+      background-color: #23272b;
+      transform: scale(1.05);
+    }
+
+    /* Глобальний стиль для ВСІХ кнопок */
+    .btn,
+    .btn-primary {
+      background-color: #343a40 !important;
+      border-color: #343a40 !important;
+      color: white !important;
+      border-radius: 10px;
+      transition: background 0.3s, transform 0.2s;
+    }
+
+    .btn:hover,
+    .btn-primary:hover {
+      background-color: #23272b !important;
+      border-color: #23272b !important;
+      transform: scale(1.03);
+    }
+  </style>
+
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@700;900&display=swap" rel="stylesheet">
+</head>
+
+<body>
+
+  <nav class="navbar navbar-expand-lg">
+    <div class="container-fluid">
+      <span class="navbar-brand">ТВІЙ НОТАРІУС</span>
+
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+
+      <div class="collapse navbar-collapse" id="navbarNav">
+        <ul class="navbar-nav ms-auto">
+          <li class="nav-item">
+            <a class="nav-btn" href="{{ url_for('appointments.book') }}">Подати заявку на прийом</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-btn" href="{{ url_for('main.contacts') }}">Контакти</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-btn" href="#">Нотаріальні послуги</a>
+          </li>
+        </ul>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Контент -->
+  {% block content %}{% endblock %}
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+
 </html>
