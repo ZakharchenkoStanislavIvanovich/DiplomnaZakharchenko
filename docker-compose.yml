@@ -1,18 +1,37 @@
 services:
+  pgadmin:
+    image: dpage/pgadmin4
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@admin.com
+      PGADMIN_DEFAULT_PASSWORD: admin
+    ports:
+      - "5050:80"
+    depends_on:
+      - db
+  db:
+    image: postgres:15-alpine
+    restart: always
+    environment:
+      POSTGRES_USER: notary_user
+      POSTGRES_PASSWORD: notary_password
+      POSTGRES_DB: notary_db
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
   backend:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    container_name: notary-app
+    build: .
     ports:
       - "3000:3000"
-    volumes:
-      - sqlite_data:/usr/local/app/instance
     environment:
-      - SECRET_KEY=supersecretkey
-      - DATABASE_URL=sqlite:////usr/local/app/instance/data.sqlite
-    restart: always
+      # Зв'язок додатка з базою Postgres всередині мережі Docker
+      DATABASE_URL: postgresql://notary_user:notary_password@db:5432/notary_db
+      SECRET_KEY: dev-key-for-now
+    depends_on:
+      - db
+    volumes:
+      - .:/usr/local/app
 
 volumes:
-  sqlite_data:
-    driver: local
+  postgres_data:

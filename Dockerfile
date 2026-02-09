@@ -1,7 +1,7 @@
 FROM python:3.13-slim
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    sqlite3 \
+    libpq-dev \
     gcc \
     python3-dev \
     build-essential \
