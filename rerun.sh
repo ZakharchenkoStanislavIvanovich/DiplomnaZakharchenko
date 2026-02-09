@@ -1,7 +1,7 @@
 #!/bin/bash
 
 echo "--- Зупинка та очищення старих контейнерів... ---"
-sudo docker compose down -v
+sudo docker compose down
 
 echo "--- Збірка та запуск PostgreSQL та Backend... ---"
 sudo docker compose up -d --build
@@ -11,9 +11,6 @@ sleep 7
 
 echo "--- Створення таблиць у PostgreSQL... ---"
 sudo docker compose exec backend python -c "from app import create_app, db; app=create_app(); app.app_context().push(); db.create_all()"
-
-echo "--- Наповнення бази через seed.py... ---"
-sudo docker compose exec backend python seed.py
 
 echo "--- Статус сервісів: ---"
 sudo docker compose ps
