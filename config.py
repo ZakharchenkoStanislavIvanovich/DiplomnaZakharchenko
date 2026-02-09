@@ -1,8 +1,7 @@
 import os
 
-basedir = os.path.abspath(os.path.dirname(__file__))
-
 class Config:
-    SECRET_KEY = 'supersecretkey'
-    SQLALCHEMY_DATABASE_URI = 'sqlite:///' + os.path.join(basedir, 'data.sqlite')  # змінити на PostgreSQL при деплої
+    SECRET_KEY = os.environ.get('SECRET_KEY', 'supersecretkey')
+    SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL') or \
+        'sqlite:///' + os.path.join(os.path.abspath(os.path.dirname(__file__)), 'data.sqlite')
     SQLALCHEMY_TRACK_MODIFICATIONS = False

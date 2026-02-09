@@ -1,0 +1,18 @@
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: notary-app
+    ports:
+      - "3000:3000"
+    volumes:
+      - sqlite_data:/usr/local/app/instance
+    environment:
+      - SECRET_KEY=supersecretkey
+      - DATABASE_URL=sqlite:////usr/local/app/instance/data.sqlite
+    restart: always
+
+volumes:
+  sqlite_data:
+    driver: local
