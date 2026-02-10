@@ -43,7 +43,7 @@ def book():
         db.session.commit()
 
         flash("✅ Ви успішно записані на прийом!", "success")
-        return redirect(url_for("appointments.book"))
+        return redirect(url_for("appointments.success"))
 
     if request.method == "POST":
         # форма не пройшла валідацію
@@ -79,3 +79,7 @@ def available_times():
         {"id": s.id, "display": s.start_time.strftime("%H:%M")}
         for s in slots
     ])
+
+@bp.route("/success")
+def success():
+    return render_template("appointments/success.html")

@@ -26,6 +26,14 @@ services:
       - db
     networks:
       - notary_network
+    logging:
+      driver: "awslogs"
+      options:
+        awslogs-region: "${AWS_REGION}"
+        awslogs-group: "${APP_NAME}-${COMPOSE_PROFILES}-api"
+        awslogs-datetime-format: '\[%b %d, %Y %H:%M:%S\]'
+        tag: "{{.Name}}/{{.ID}}"
+        awslogs-create-group: "true"
 
   pgadmin:
     image: dpage/pgadmin4
