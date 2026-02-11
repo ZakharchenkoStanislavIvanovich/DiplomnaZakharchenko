@@ -10,3 +10,6 @@ venv/
 *.db
 *.sqlite3
 *.log
+.terraform/
+*.tfstate
+*.tfstate.backup
