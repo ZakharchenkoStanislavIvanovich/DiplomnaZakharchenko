@@ -7,16 +7,16 @@ check_error() {
     fi
 }
 
-echo "--- Зупинка та запуск... ---"
+echo "--- Зупинка та запуск контейнерів... ---"
 sudo docker compose down
 sudo docker compose up -d --build
 check_error "Docker Build"
 
-echo "--- Очікування бази... ---"
-sleep 7
+echo "--- Очікування бази (10 сек)... ---"
+sleep 10
 
-echo "--- Створення таблиць... ---"
-sudo docker compose exec backend python -c "from app import create_app, db; app=create_app(); app.app_context().push(); db.create_all()"
+echo "--- Застосування міграцій... ---"
+sudo docker compose exec backend flask db upgrade
 check_error "Database Migration"
 
 echo "--- Запуск тестів... ---"

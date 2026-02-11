@@ -5,15 +5,54 @@
 {% block content %}
 
 <style>
-  /* Прибираємо скрол сторінки */
   body {
       overflow: hidden;
+  }
+
+  #infoButton {
+      background-color: #343a40 !important;
+      color: white !important;
+      padding: 8px 20px;
+      border-radius: 10px;
+      text-decoration: none;
+      font-weight: 500;
+      border: none !important;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      transition: background-color 0.3s ease !important; 
+  }
+
+  #infoButton:hover:not([style*="pointer-events: none"]) {
+      background-color: #23272b !important;
+      transform: none !important;
+  }
+
+  .btn-primary, #submitButton {
+      background-color: #343a40 !important;
+      border-color: #343a40 !important;
+      color: white !important;
+      border-radius: 10px;
+      padding: 10px 25px;
+      transition: background-color 0.3s ease !important;
+  }
+
+  .btn-primary:hover, #submitButton:hover {
+      background-color: #23272b !important;
+      border-color: #23272b !important;
+      transform: none !important;
+      box-shadow: none !important;
+  }
+
+  #time_id:disabled {
+      background-color: white !important;
+      color: #6c757d;
+      cursor: default;
   }
 </style>
 
 <div style="display: flex; flex-wrap: wrap; gap: 30px; max-width: 95%; margin: 50px 3%;">
 
-    <!-- Ліва частина: форма -->
     <div style="flex: 1 1 600px; min-width: 300px; color: #343a40;">
         <h2 style="color: #343a40; font-weight: 700; margin-bottom: 30px;">Подання заявки на прийом</h2>
 
@@ -23,7 +62,7 @@
             <!-- Ім'я -->
             <div class="mb-3">
                 {{ form.name.label(class="form-label") }}
-                {{ form.name(class="form-control") }}
+                {{ form.name(class="form-control", placeholder="Введіть ваше ім'я") }}
                 {% for error in form.name.errors %}
                 <div class="text-danger small">{{ error }}</div>
                 {% endfor %}
@@ -32,7 +71,7 @@
             <!-- Email -->
             <div class="mb-3">
                 {{ form.email.label(class="form-label") }}
-                {{ form.email(class="form-control") }}
+                {{ form.email(class="form-control", placeholder="Введіть ваш email") }}
                 {% for error in form.email.errors %}
                 <div class="text-danger small">{{ error }}</div>
                 {% endfor %}
@@ -41,10 +80,16 @@
             <!-- Послуга -->
             <div class="mb-3">
                 {{ form.service_id.label(class="form-label") }}
-                {{ form.service_id(class="form-select") }}
-                {% for error in form.service_id.errors %}
-                <div class="text-danger small">{{ error }}</div>
-                {% endfor %}
+                <div class="d-flex gap-2">
+                    {{ form.service_id(class="form-select", id="service_select") }}
+                    
+                    <a id="infoButton" href="{{ url_for('main.services_list') }}" 
+                    class="nav-btn d-flex align-items-center justify-content-center" 
+                    title="Детальніше про послугу" 
+                    style="white-space: nowrap; margin: 0; opacity: 0.5; pointer-events: none; font-size: 0.9rem;">
+                    Про послугу
+                    </a>
+                </div>
             </div>
 
             <!-- Дата -->
@@ -169,7 +214,6 @@
             </ol>
         </div>
 
-        <!-- Чекбокс всередині рамки -->
         <div class="form-check">
             <input class="form-check-input" type="checkbox" id="privacyCheck">
             <label class="form-check-label" for="privacyCheck">
@@ -183,50 +227,78 @@
 
 <script>
 document.addEventListener("DOMContentLoaded", function () {
-    const form = document.getElementById("appointmentForm");
-    const privacyCheck = document.getElementById("privacyCheck");
-    const privacyError = document.getElementById("privacyError");
     const dateInput = document.getElementById("date");
     const timeSelect = document.getElementById("time_id");
+    const serviceSelect = document.getElementById("service_select");
+    const infoButton = document.getElementById("infoButton");
+    
+    function setInitialTimeState() {
+        timeSelect.innerHTML = '<option value="" disabled selected>Спочатку оберіть дату</option>';
+        timeSelect.disabled = true;
+        timeSelect.style.backgroundColor = "white";
+        timeSelect.style.color = "#6c757d";
+    }
 
-    // Перевірка чекбокса при сабміті
-    form.addEventListener("submit", function(e) {
-        if (!privacyCheck.checked) {
-            e.preventDefault();
-            privacyError.style.display = "block";
+    function updateInfoLink() {
+        const serviceId = serviceSelect.value;
+        if (serviceId) {
+            infoButton.href = `/services#service-${serviceId}`;
+            infoButton.style.opacity = "1";
+            infoButton.style.pointerEvents = "auto";
         } else {
-            privacyError.style.display = "none";
+            infoButton.href = "{{ url_for('main.services_list') }}";
+            infoButton.style.opacity = "0.5";
+            infoButton.style.pointerEvents = "none";
         }
-    });
+    }
 
-    // Підвантаження доступних годин
     function loadTimesFor(dateStr) {
-        timeSelect.innerHTML = '<option value="">Завантаження...</option>';
-        fetch(`/appointments/available_times?date=${dateStr}`)
-            .then(response => response.json())
-            .then(times => {
-                timeSelect.innerHTML = '<option value="">Оберіть час</option>';
-                if (!times || times.length === 0) {
-                    const option = document.createElement("option");
-                    option.textContent = "Немає доступних годин";
-                    option.disabled = true;
-                    timeSelect.appendChild(option);
-                } else {
-                    times.forEach(t => {
-                        const option = document.createElement("option");
-                        option.value = t.id;
-                        option.textContent = t.display;
-                        timeSelect.appendChild(option);
-                    });
-                }
+            timeSelect.innerHTML = '<option value="">Завантаження...</option>';
+            timeSelect.disabled = true;
+            timeSelect.style.color = "#6c757d"; // Сірий під час завантаження
+
+            fetch(`/appointments/available_times?date=${dateStr}`)
+                .then(response => response.json())
+                .then(times => {
+                    if (!times || times.length === 0) {
+                        timeSelect.innerHTML = '<option value="" disabled selected>Немає вільних годин</option>';
+                    } else {
+                        timeSelect.innerHTML = '<option value="" disabled selected>Оберіть час</option>';
+                        times.forEach(t => {
+                            const option = document.createElement("option");
+                            option.value = t.id;
+                            option.textContent = t.display;
+                            option.style.color = "#343a40";
+                            timeSelect.appendChild(option);
+                        });
+                        timeSelect.disabled = false;
+                    }
+                })
+            .catch(err => {
+                timeSelect.innerHTML = '<option value="" disabled>Помилка завантаження</option>';
+                timeSelect.disabled = true;
             });
     }
 
+    serviceSelect.addEventListener("change", updateInfoLink);
+    
     dateInput.addEventListener("change", function () {
-        if (this.value) loadTimesFor(this.value);
+        if (this.value) {
+            loadTimesFor(this.value);
+        } else {
+            setInitialTimeState();
+        }
     });
 
-    if (dateInput.value) loadTimesFor(dateInput.value);
+    updateInfoLink();
+    if (dateInput.value) {
+        loadTimesFor(dateInput.value);
+    } else {
+        setInitialTimeState();
+    }
+    timeSelect.addEventListener('change', function() {
+            this.style.color = this.value ? "#343a40" : "#6c757d";
+        });
 });
 </script>
 {% endblock %}

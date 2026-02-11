@@ -17,9 +17,15 @@
       font-size: 2rem;
       letter-spacing: 2px;
       color: white !important;
+      text-decoration: none;
+      transition: opacity 0.3s;
     }
 
-    /* Стилі для кнопок нагорі */
+    .navbar-brand:hover {
+      opacity: 0.8;
+      color: white !important;
+    }
+
     .nav-btn {
       background-color: #343a40;
       color: white !important;
@@ -36,7 +42,6 @@
       transform: scale(1.05);
     }
 
-    /* Глобальний стиль для ВСІХ кнопок */
     .btn,
     .btn-primary {
       background-color: #343a40 !important;
@@ -61,7 +66,7 @@
 
   <nav class="navbar navbar-expand-lg">
     <div class="container-fluid">
-      <span class="navbar-brand">ТВІЙ НОТАРІУС</span>
+      <a class="navbar-brand" href="{{ url_for('main.index') }}">ТВІЙ НОТАРІУС</a>
 
       <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
         <span class="navbar-toggler-icon"></span>
@@ -76,14 +81,13 @@
             <a class="nav-btn" href="{{ url_for('main.contacts') }}">Контакти</a>
           </li>
           <li class="nav-item">
-            <a class="nav-btn" href="#">Нотаріальні послуги</a>
+              <a class="nav-btn" href="{{ url_for('main.services_list') }}">Нотаріальні послуги</a>
           </li>
         </ul>
       </div>
     </div>
   </nav>
 
-  <!-- Контент -->
   {% block content %}{% endblock %}
 
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
