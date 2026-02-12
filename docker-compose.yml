@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   db:
     image: postgres:17-alpine
@@ -18,9 +16,6 @@ services:
       - "3000:3000"
     env_file:
       - .env
-    environment:
-      - SQLALCHEMY_DATABASE_URI=${SQLALCHEMY_DATABASE_URI}
-      - SECRET_KEY=${SECRET_KEY}
     depends_on:
       - db
     networks:
