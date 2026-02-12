@@ -14,14 +14,25 @@ services:
 
   backend:
     image: ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${ECR_REPOSITORY}:latest
+    container_name: notary-backend
+    restart: always
     ports:
       - "3000:3000"
     env_file:
       - .env
+    environment:
+      DATABASE_URL: postgresql+psycopg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
     depends_on:
       - db
     networks:
       - notary_network
+    logging:
+      driver: "awslogs"
+      options:
+        awslogs-region: "${AWS_REGION}"
+        awslogs-group: "notary-app-logs"
+        awslogs-create-group: "true"
+        tag: "{{.Name}}/{{.ID}}"
 
 networks:
   notary_network:
