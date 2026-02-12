@@ -23,6 +23,7 @@ services:
 
 networks:
   notary_network:
+    name: notary_network
     driver: bridge
 
 volumes:
