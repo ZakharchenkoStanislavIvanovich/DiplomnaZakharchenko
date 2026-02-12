@@ -13,8 +13,23 @@ services:
     volumes:
       - notary_app_postgres_data:/var/lib/postgresql/data
 
+# Для локального запуску
+  # backend:
+  #   build: .
+  #   container_name: notary_app-backend-1
+  #   restart: always
+  #   environment:
+  #     DATABASE_URL: postgresql+psycopg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
+  #     SECRET_KEY: ${SECRET_KEY}
+  #   ports:
+  #     - "3000:3000"
+  #   depends_on:
+  #     - db
+  #   networks:
+  #     - notary_network
+# Для запуску на хмарі
   backend:
-    build: .
+    image: 331914066817.dkr.ecr.eu-west-1.amazonaws.com/notary-app-ecr-repo:latest
     container_name: notary_app-backend-1
     restart: always
     environment:
