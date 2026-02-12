@@ -27,8 +27,8 @@ echo "--- Запуск системи ---"
 sudo docker compose --env-file .env up -d
 check_error "Docker Up"
 
-echo "--- Очікування бази (10 сек)... ---"
-sleep 10
+echo "--- Очікування бази (30 сек)... ---"
+sleep 30
 
 echo "--- Застосування міграцій... ---"
 sudo docker compose --env-file .env exec -T backend flask db upgrade
