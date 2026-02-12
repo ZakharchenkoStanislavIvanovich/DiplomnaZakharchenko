@@ -27,8 +27,16 @@ echo "--- Запуск системи ---"
 sudo docker compose --env-file .env up -d
 check_error "Docker Up"
 
-echo "--- Очікування бази (30 сек)... ---"
+echo "--- Очікування бази (30 сек) ---"
 sleep 30
+
+echo "--- Перевірка DNS зв'язку з базою ---"
+if ! sudo docker compose --env-file .env exec -T backend ping -c 1 db; then
+    echo "УВАГА: Контейнер не бачить хост 'db' через DNS. Спробую примусово перезавантажити мережу."
+    sudo docker network prune -f
+    sudo docker compose --env-file .env up -d --force-recreate
+    sleep 20
+fi
 
 echo "--- Застосування міграцій... ---"
 sudo docker compose --env-file .env exec -T backend flask db upgrade
