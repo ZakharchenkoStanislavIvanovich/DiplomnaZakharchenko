@@ -12,31 +12,31 @@ if [ -f .env ]; then
 fi
 
 if [ -z "$AWS_ACCOUNT_ID" ]; then
-    echo "ПОМИЛКА: AWS_ACCOUNT_ID не знайдено"
+    echo "ПОМИЛКА: AWS_ACCOUNT_ID не знайдено в .env"
     exit 1
 fi
 
 echo "--- Зупинка та чистка (ECR: $ECR_REPOSITORY) ---"
-sudo -E docker compose down --remove-orphans
+sudo docker compose --env-file .env down --remove-orphans
 
 echo "--- Стягування образу ---"
-sudo -E docker compose pull backend
+sudo docker compose --env-file .env pull backend
 check_error "Docker Pull"
 
 echo "--- Запуск системи ---"
-sudo -E docker compose up -d
+sudo docker compose --env-file .env up -d
 check_error "Docker Up"
 
 echo "--- Очікування бази (10 сек)... ---"
 sleep 10
 
 echo "--- Застосування міграцій... ---"
-sudo -E docker compose exec -T backend flask db upgrade
+sudo docker compose --env-file .env exec -T backend flask db upgrade
 check_error "Database Migration"
 
 echo "--- Запуск тестів... ---"
-sudo -E docker compose exec -T backend pytest tests/test_basic.py
+sudo docker compose --env-file .env exec -T backend pytest tests/test_basic.py
 check_error "Tests Failed"
 
-sudo docker compose ps
+sudo docker compose --env-file .env ps
 echo "--- Успішно оновлено! Версія: $(date) ---"
