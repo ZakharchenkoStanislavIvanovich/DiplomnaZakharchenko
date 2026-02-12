@@ -25,12 +25,46 @@ jobs:
 
       - name: Run Linter (flake8)
         run: |
-          # Перевіряє код на помилки та відповідність стандартам
           flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
+
+  build-and-push:
+    name: Build and Push to ECR
+    needs: lint-test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: eu-west-1
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build and push to ECR
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          platforms: linux/arm64
+          push: true
+          tags: 331914066817.dkr.ecr.eu-west-1.amazonaws.com/notary-app-ecr-repo:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
 
   deploy:
     name: Deploy to AWS EC2
-    needs: lint-test
+    needs: build-and-push
     runs-on: ubuntu-latest
     steps:
       - name: Execute remote commands via SSH
@@ -43,5 +77,7 @@ jobs:
             cd ~/DiplomnaZakharchenko
             git fetch origin main
             git reset --hard origin/main
+            aws ecr get-login-password --region eu-west-1 | docker login --username AWS --password-stdin 331914066817.dkr.ecr.eu-west-1.amazonaws.com
+            docker compose pull backend
             chmod +x rerun.sh
             ./rerun.sh

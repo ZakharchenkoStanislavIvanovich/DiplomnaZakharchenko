@@ -1,17 +1,16 @@
+version: '3.8'
+
 services:
   db:
     image: postgres:17-alpine
-    container_name: notary_app-db-1
     environment:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_DB: ${POSTGRES_DB}
-    ports:
-      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
     networks:
       - notary_network
-    volumes:
-      - notary_app_postgres_data:/var/lib/postgresql/data
 
 # Для локального запуску
   # backend:
@@ -28,37 +27,26 @@ services:
   #   networks:
   #     - notary_network
 # Для запуску на хмарі
-  backend:
+backend:
     image: 331914066817.dkr.ecr.eu-west-1.amazonaws.com/notary-app-ecr-repo:latest
-    container_name: notary_app-backend-1
-    restart: always
-    environment:
-      DATABASE_URL: postgresql+psycopg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
-      SECRET_KEY: ${SECRET_KEY}
     ports:
       - "3000:3000"
+    env_file:
+      - .env
     depends_on:
       - db
     networks:
       - notary_network
-    logging:
-      driver: "awslogs"
-      options:
-        awslogs-region: "${AWS_REGION}"
-        awslogs-group: "${APP_NAME}-${COMPOSE_PROFILES}-api"
-        awslogs-datetime-format: '\[%b %d, %Y %H:%M:%S\]'
-        tag: "{{.Name}}/{{.ID}}"
-        awslogs-create-group: "true"
 
-  pgadmin:
+pgadmin:
     image: dpage/pgadmin4
-    container_name: notary_app-pgadmin-1
-    restart: always
     environment:
-      PGADMIN_DEFAULT_EMAIL: admin@notary.com
-      PGADMIN_DEFAULT_PASSWORD: admin
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_DEFAULT_EMAIL}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_DEFAULT_PASSWORD}
     ports:
       - "5050:80"
+    depends_on:
+      - db
     networks:
       - notary_network
 
@@ -67,4 +55,4 @@ networks:
     driver: bridge
 
 volumes:
-  notary_app_postgres_data:
+  postgres_data:

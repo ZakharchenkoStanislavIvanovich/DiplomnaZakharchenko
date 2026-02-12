@@ -7,20 +7,24 @@ check_error() {
     fi
 }
 
-echo "--- Зупинка та запуск контейнерів... ---"
+echo "--- Зупинка та запуск контейнерів (чистий запуск з ECR) ---"
 sudo docker compose down
-sudo docker compose up -d --build
-check_error "Docker Build"
+
+sudo docker compose pull backend
+check_error "Docker Pull"
+
+sudo docker compose up -d
+check_error "Docker Up"
 
 echo "--- Очікування бази (10 сек)... ---"
 sleep 10
 
 echo "--- Застосування міграцій... ---"
-sudo docker compose exec backend flask db upgrade
+sudo docker compose exec -T backend flask db upgrade
 check_error "Database Migration"
 
 echo "--- Запуск тестів... ---"
-sudo docker compose exec backend pytest tests/test_basic.py
+sudo docker compose exec -T backend pytest tests/test_basic.py
 check_error "Tests Failed"
 
 echo "--- Статус сервісів: ---"

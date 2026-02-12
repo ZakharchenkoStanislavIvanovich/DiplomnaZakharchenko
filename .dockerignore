@@ -1,0 +1,11 @@
+.terraform
+.terraform.lock.hcl
+terraform.tfstate*
+.git
+.github
+__pycache__
+*.pyc
+venv
+.env
+Dockerfile
+.dockerignore
