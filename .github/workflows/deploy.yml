@@ -3,6 +3,11 @@ name: Notary App CI/CD
 on:
   push:
     branches: [ main ]
+  workflow_dispatch:
+
+env:
+  AWS_REGION: eu-west-1
+  ECR_REPOSITORY: notary-app-ecr-repo
 
 jobs:
   lint-test:
@@ -16,6 +21,7 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: '3.13'
+          cache: 'pip'
 
       - name: Install dependencies
         run: |
@@ -24,8 +30,7 @@ jobs:
           if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
 
       - name: Run Linter (flake8)
-        run: |
-          flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
+        run: flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
 
   build-and-push:
     name: Build and Push to ECR
@@ -40,7 +45,7 @@ jobs:
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: eu-west-1
+          aws-region: ${{ env.AWS_REGION }}
 
       - name: Login to Amazon ECR
         id: login-ecr
@@ -52,13 +57,19 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
+      - name: Generate Tag
+        id: tag
+        run: echo "DATE_TAG=$(date +'%Y-%m-%d_%H-%M')" >> $GITHUB_OUTPUT
+
       - name: Build and push to ECR
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v6
         with:
           context: .
           platforms: linux/arm64
           push: true
-          tags: 331914066817.dkr.ecr.eu-west-1.amazonaws.com/notary-app-ecr-repo:latest
+          tags: |
+            ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/${{ env.ECR_REPOSITORY }}:latest
+            ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/${{ env.ECR_REPOSITORY }}:${{ steps.tag.outputs.DATE_TAG }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
@@ -68,16 +79,17 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Execute remote commands via SSH
-        uses: appleboy/ssh-action@v1.0.3
+        uses: appleboy/ssh-action@v1.2.0
         with:
           host: ${{ secrets.HOST }}
           username: ${{ secrets.USER }}
           key: ${{ secrets.EC2_SSH_KEY }}
+          envs: AWS_ACCOUNT_ID,AWS_REGION,ECR_REPOSITORY
           script: |
             cd ~/DiplomnaZakharchenko
-            git fetch origin main
-            git reset --hard origin/main
-            aws ecr get-login-password --region eu-west-1 | docker login --username AWS --password-stdin 331914066817.dkr.ecr.eu-west-1.amazonaws.com
-            docker compose pull backend
-            chmod +x rerun.sh
-            ./rerun.sh
+            chmod +x deploy.sh
+            ./deploy.sh
+        env:
+          AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
+          AWS_REGION: ${{ env.AWS_REGION }}
+          ECR_REPOSITORY: ${{ env.ECR_REPOSITORY }}
