@@ -1,0 +1,87 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container mt-5">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="mb-0">Панель керування нотаріуса</h1>
+        <div>
+            <a href="{{ url_for('admin.archive') }}" class="btn btn-outline-secondary btn-sm me-3">Архів видалених</a>
+            <span class="text-muted">Адмін: <strong>{{ current_user.username }}</strong></span>
+        </div>
+    </div>
+    <hr>
+    <div class="table-responsive">
+        <table class="table table-hover align-middle">
+            <thead class="table-dark">
+                <tr>
+                    <th>ID</th>
+                    <th>Клієнт</th>
+                    <th>Послуга</th>
+                    <th>Дата / Час</th>
+                    <th>Статус</th>
+                    <th>Дії</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for app in appointments %}
+                <tr id="row-{{ app.id }}">
+                    <td>{{ app.id }}</td>
+                    <td><strong>{{ app.client.name }}</strong><br><small>{{ app.client.email }}</small></td>
+                    <td>{{ app.service.name }}</td>
+                    <td>{{ app.slot.date.strftime('%d.%m.%Y') }} | {{ app.slot.start_time.strftime('%H:%M') }}</td>
+                    <td>
+                        <span id="status-badge-{{ app.id }}" class="badge {% if app.status == 'підтверджено' %}bg-success{% elif app.status == 'відхилено' %}bg-danger{% else %}bg-warning text-dark{% endif %}">
+                            {{ app.status }}
+                        </span>
+                    </td>
+                    <td id="actions-{{ app.id }}">
+                        {% if app.status == 'очікує' %}
+                            <button class="btn btn-sm btn-outline-success action-btn" data-id="{{ app.id }}" data-action="confirm">Прийняти</button>
+                            <button class="btn btn-sm btn-outline-danger action-btn" data-id="{{ app.id }}" data-action="reject">Відхилити</button>
+                        {% else %}
+                            <button class="btn btn-sm btn-outline-secondary action-btn" data-id="{{ app.id }}" 
+                                    data-action="{{ 'reject' if app.status == 'підтверджено' else 'confirm' }}">
+                                Змінити на {{ 'Відхилити' if app.status == 'підтверджено' else 'Прийняти' }}
+                            </button>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <button class="btn btn-link text-danger p-0" 
+                                style="text-decoration:none; font-size:1.5rem;" 
+                                onclick="confirmDelete('{{ app.id }}')">
+                             &times;
+                        </button>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+async function confirmDelete(id) {
+    let confirmation = prompt("Для підтвердження видалення введіть слово: Видалити");
+    if (confirmation === "Видалити") {
+        const response = await fetch(`/admin/delete_appointment/${id}`, { method: 'POST' });
+        if (response.ok) { document.getElementById(`row-${id}`).remove(); }
+    }
+}
+
+document.querySelectorAll('.action-btn').forEach(button => {
+    button.addEventListener('click', async function() {
+        const id = this.getAttribute('data-id');
+        const action = this.getAttribute('data-action');
+        let note = (action === 'reject') ? prompt("Вкажіть причину відхилення:") : "";
+        if (action === 'reject' && note === null) return;
+
+        const response = await fetch(`/admin/update_status/${id}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action: action, note: note })
+        });
+        if (response.ok) { location.reload(); }
+    });
+});
+</script>
+{% endblock %}

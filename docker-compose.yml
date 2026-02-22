@@ -13,7 +13,7 @@ services:
       - notary_network
 
   backend:
-    image: ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${ECR_REPOSITORY}:latest
+    build: .
     container_name: notary-backend
     restart: always
     ports:
@@ -26,13 +26,13 @@ services:
       - db
     networks:
       - notary_network
-    logging:
-      driver: "awslogs"
-      options:
-        awslogs-region: "${AWS_REGION}"
-        awslogs-group: "notary-app-logs"
-        awslogs-create-group: "true"
-        tag: "{{.Name}}/{{.ID}}"
+    # logging:
+    #   driver: "awslogs"
+    #   options:
+    #     awslogs-region: "${AWS_REGION}"
+    #     awslogs-group: "notary-app-logs"
+    #     awslogs-create-group: "true"
+    #     tag: "{{.Name}}/{{.ID}}"
 
 networks:
   notary_network:

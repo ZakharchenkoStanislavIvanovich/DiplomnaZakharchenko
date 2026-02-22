@@ -13,9 +13,7 @@ class AppointmentForm(FlaskForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        # список послуг
         self.service_id.choices = [
             (s.id, s.name) for s in Service.query.order_by(Service.name).all()
         ]
-        # час підтягуємо AJAX-ом
         self.time_id.choices = []

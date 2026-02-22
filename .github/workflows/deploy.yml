@@ -32,65 +32,65 @@ jobs:
       - name: Run Linter (flake8)
         run: flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
 
-  build-and-push:
-    name: Build and Push to ECR
-    needs: lint-test
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+  # build-and-push:
+  #   name: Build and Push to ECR
+  #   needs: lint-test
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - name: Checkout code
+  #       uses: actions/checkout@v4
 
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ env.AWS_REGION }}
+  #     - name: Configure AWS credentials
+  #       uses: aws-actions/configure-aws-credentials@v4
+  #       with:
+  #         aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+  #         aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+  #         aws-region: ${{ env.AWS_REGION }}
 
-      - name: Login to Amazon ECR
-        id: login-ecr
-        uses: aws-actions/amazon-ecr-login@v2
+  #     - name: Login to Amazon ECR
+  #       id: login-ecr
+  #       uses: aws-actions/amazon-ecr-login@v2
 
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v3
+  #     - name: Set up QEMU
+  #       uses: docker/setup-qemu-action@v3
 
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+  #     - name: Set up Docker Buildx
+  #       uses: docker/setup-buildx-action@v3
 
-      - name: Generate Tag
-        id: tag
-        run: echo "DATE_TAG=$(date +'%Y-%m-%d_%H-%M')" >> $GITHUB_OUTPUT
+  #     - name: Generate Tag
+  #       id: tag
+  #       run: echo "DATE_TAG=$(date +'%Y-%m-%d_%H-%M')" >> $GITHUB_OUTPUT
 
-      - name: Build and push to ECR
-        uses: docker/build-push-action@v6
-        with:
-          context: .
-          platforms: linux/arm64
-          push: true
-          tags: |
-            ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/${{ env.ECR_REPOSITORY }}:latest
-            ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/${{ env.ECR_REPOSITORY }}:${{ steps.tag.outputs.DATE_TAG }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+  #     - name: Build and push to ECR
+  #       uses: docker/build-push-action@v6
+  #       with:
+  #         context: .
+  #         platforms: linux/arm64
+  #         push: true
+  #         tags: |
+  #           ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/${{ env.ECR_REPOSITORY }}:latest
+  #           ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/${{ env.ECR_REPOSITORY }}:${{ steps.tag.outputs.DATE_TAG }}
+  #         cache-from: type=gha
+  #         cache-to: type=gha,mode=max
 
-  deploy:
-    name: Deploy to AWS EC2
-    needs: build-and-push
-    runs-on: ubuntu-latest
-    steps:
-      - name: Execute remote commands via SSH
-        uses: appleboy/ssh-action@v1.2.0
-        with:
-          host: ${{ secrets.HOST }}
-          username: ${{ secrets.USER }}
-          key: ${{ secrets.EC2_SSH_KEY }}
-          envs: AWS_ACCOUNT_ID,AWS_REGION,ECR_REPOSITORY
-          script: |
-            aws ecr get-login-password --region ${AWS_REGION} | docker login --username AWS --password-stdin ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com
-            cd ~/DiplomnaZakharchenko
-            chmod +x deploy.sh
-            ./deploy.sh
-        env:
-          AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
-          AWS_REGION: ${{ env.AWS_REGION }}
-          ECR_REPOSITORY: ${{ env.ECR_REPOSITORY }}
+  # deploy:
+  #   name: Deploy to AWS EC2
+  #   needs: build-and-push
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - name: Execute remote commands via SSH
+  #       uses: appleboy/ssh-action@v1.2.0
+  #       with:
+  #         host: ${{ secrets.HOST }}
+  #         username: ${{ secrets.USER }}
+  #         key: ${{ secrets.EC2_SSH_KEY }}
+  #         envs: AWS_ACCOUNT_ID,AWS_REGION,ECR_REPOSITORY
+  #         script: |
+  #           aws ecr get-login-password --region ${AWS_REGION} | docker login --username AWS --password-stdin ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com
+  #           cd ~/DiplomnaZakharchenko
+  #           chmod +x deploy.sh
+  #           ./deploy.sh
+  #       env:
+  #         AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
+  #         AWS_REGION: ${{ env.AWS_REGION }}
+  #         ECR_REPOSITORY: ${{ env.ECR_REPOSITORY }}

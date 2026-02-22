@@ -1,0 +1,26 @@
+<div style="font-family: sans-serif; border: 1px solid #d4edda; padding: 25px; max-width: 600px; color: #333;">
+  <h2 style="color: #155724; border-bottom: 2px solid #28a745; padding-bottom: 10px;">Заявку підтверджено</h2>
+  
+  <p>Шановний(-а) <strong>{{ appointment.client.name }}</strong>, інформуємо вас, що ваш запис підтверджено.</p>
+
+  <div style="background: #f0fff4; padding: 15px; border-radius: 8px; border: 1px solid #c3e6cb; margin: 20px 0;">
+    <h3 style="margin-top: 0; font-size: 16px; color: #155724;">Деталі прийому:</h3>
+    <p style="margin: 5px 0;">Дата: <strong>{{ appointment.slot.date.strftime('%d.%m.%Y') }}</strong></p>
+    <p style="margin: 5px 0;">Час: <strong>{{ appointment.slot.start_time.strftime('%H:%M') }}</strong></p>
+    <p style="margin: 5px 0;">Послуга: <strong>{{ appointment.service.name }}</strong></p>
+  </div>
+
+  <div style="background: #fff9db; padding: 10px; border-radius: 5px; font-size: 13px; color: #856404; margin-bottom: 20px; border-left: 4px solid #ffc107;">
+    Важливо: Для вчинення нотаріальної дії просимо мати при собі оригінал паспорта та реєстраційний номер облікової картки платника податків.
+  </div>
+
+  <hr style="border: none; border-top: 1px solid #eee; margin: 25px 0;">
+  
+  <h4 style="margin-bottom: 10px;">Контактна інформація:</h4>
+  <p style="font-size: 14px; line-height: 1.6; margin: 0;">
+    Телефон: +380-67-123-45-67<br>
+    Електронна адреса: tviy.notarius@gmail.com<br>
+    Viber: +380-67-123-45-67<br>
+    WhatsApp: +380-67-123-45-67
+  </p>
+</div>

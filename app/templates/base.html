@@ -10,10 +10,6 @@
       background-color: #2c3e50 !important;
     }
 
-    /* .navbar {
-      background-color: #808000 !important;
-    } */
-
     .navbar-brand {
       font-family: 'Poppins', sans-serif;
       font-weight: 900;
@@ -34,16 +30,23 @@
       background-color: #343a40;
       color: white !important;
       padding: 8px 20px;
-      margin: 0 12px;
+      margin: 4px 6px;
       border-radius: 10px;
       text-decoration: none;
       font-weight: 500;
       transition: background 0.3s, transform 0.2s;
+      display: inline-block;
     }
 
     .nav-btn:hover {
       background-color: #23272b;
       transform: scale(1.05);
+    }
+
+    .nav-btn-admin {
+      background-color: #d4af37 !important;
+      color: #1a1a1a !important;
+      font-weight: bold;
     }
 
     .btn,
@@ -73,24 +76,45 @@
       <a class="navbar-brand" href="{{ url_for('main.index') }}">ТВІЙ НОТАРІУС</a>
 
       <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
-        <span class="navbar-toggler-icon"></span>
+        <span class="navbar-toggler-icon" style="filter: invert(1);"></span>
       </button>
 
       <div class="collapse navbar-collapse" id="navbarNav">
-        <ul class="navbar-nav ms-auto">
+        <ul class="navbar-nav ms-auto align-items-center">
+        <li class="nav-item">
+          <a class="nav-btn" href="{{ url_for('appointments.book') }}">Подати заявку на прийом</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-btn" href="{{ url_for('main.contacts') }}">Контакти</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-btn" href="{{ url_for('main.services_list') }}">Нотаріальні послуги</a>
+        </li>
+
+        {% if current_user.is_authenticated %}
+          {% if current_user.is_admin %}
+            <li class="nav-item">
+              <a class="nav-btn" href="{{ url_for('admin.dashboard') }}">Кабінет нотаріуса</a>
+            </li>
+          {% endif %}
           <li class="nav-item">
-            <a class="nav-btn" href="{{ url_for('appointments.book') }}">Подати заявку на прийом</a>
+            <a class="nav-btn" href="{{ url_for('auth.logout') }}" style="background-color: #c0392b;">Вийти</a>
           </li>
-          <li class="nav-item">
-            <a class="nav-btn" href="{{ url_for('main.contacts') }}">Контакти</a>
-          </li>
-          <li class="nav-item">
-              <a class="nav-btn" href="{{ url_for('main.services_list') }}">Нотаріальні послуги</a>
-          </li>
+        {% endif %}
         </ul>
       </div>
     </div>
   </nav>
+
+  <div class="container mt-3">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        {% for category, message in messages %}
+          <div class="alert alert-{{ category }}">{{ message }}</div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+  </div>
 
   {% block content %}{% endblock %}
 

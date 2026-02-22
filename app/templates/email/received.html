@@ -1,0 +1,28 @@
+<div style="font-family: sans-serif; border: 1px solid #eee; padding: 25px; max-width: 600px; color: #333;">
+  <h2 style="color: #2c3e50; border-bottom: 2px solid #f1c40f; padding-bottom: 10px;">Підтвердження отримання заявки</h2>
+  
+  <p>Шановний(-а) <strong>{{ appointment.client.name }}</strong>,</p>
+  <p>Ваша заявка на отримання нотаріальних послуг прийнята в роботу та очікує розгляду.</p>
+
+  <div style="background: #f9f9f9; padding: 15px; border-radius: 8px; margin: 20px 0;">
+    <h3 style="margin-top: 0; font-size: 16px; color: #555;">Інформація про запис:</h3>
+    <table style="width: 100%; border-collapse: collapse;">
+      <tr><td style="padding: 5px 0; color: #777; width: 150px;">Предмет заявки:</td><td><strong>{{ appointment.service.name }}</strong></td></tr>
+      <tr><td style="padding: 5px 0; color: #777;">Дата візиту:</td><td><strong>{{ appointment.slot.date.strftime('%d.%m.%Y') if appointment.slot.date else 'Уточнюється' }}</strong></td></tr>
+      <tr><td style="padding: 5px 0; color: #777;">Час візиту:</td><td><strong>{{ appointment.slot.start_time.strftime('%H:%M') if appointment.slot.start_time else 'Уточнюється' }}</strong></td></tr>
+      <tr><td style="padding: 5px 0; color: #777;">Електронна пошта:</td><td>{{ appointment.client.email }}</td></tr>
+    </table>
+  </div>
+
+  <p style="font-size: 14px;">Поточний статус: <strong>Очікує підтвердження</strong></p>
+  
+  <hr style="border: none; border-top: 1px solid #eee; margin: 25px 0;">
+  
+  <h4 style="margin-bottom: 10px;">Контактна інформація:</h4>
+  <p style="font-size: 14px; line-height: 1.6; margin: 0;">
+    Телефон: +380-67-123-45-67<br>
+    Електронна адреса: tviy.notarius@gmail.com<br>
+    Viber: +380-67-123-45-67<br>
+    WhatsApp: +380-67-123-45-67
+  </p>
+</div>

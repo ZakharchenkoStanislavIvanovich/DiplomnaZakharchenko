@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container mt-5">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1>Архів видалених заявок</h1>
+        <a href="{{ url_for('admin.dashboard') }}" class="btn btn-outline-primary btn-sm">Назад до панелі</a>
+    </div>
+
+    <div class="row">
+        <div class="col-md-6">
+            <h4 class="text-secondary border-bottom pb-2">Видалено вручну</h4>
+            <div class="list-group">
+                {% for entry in manual_deleted %}
+                <div class="list-group-item">
+                    <div class="d-flex w-100 justify-content-between">
+                        <h6 class="mb-1">{{ entry.client_name }}</h6>
+                        <small class="text-muted">{{ entry.deleted_at.strftime('%d.%m %H:%M') }}</small>
+                    </div>
+                    <small>{{ entry.service_name }} | {{ entry.slot_info }}</small>
+                </div>
+                {% else %}
+                <p class="text-muted italic mt-2">Записів немає</p>
+                {% endfor %}
+            </div>
+        </div>
+
+        <div class="col-md-6">
+            <h4 class="text-danger border-bottom pb-2">Видалено автоматично</h4>
+            <p class="text-muted small">Відхилені заявки, що зберігалися понад 3 дні</p>
+            <div class="list-group">
+                {% for entry in auto_deleted %}
+                <div class="list-group-item border-danger-subtle">
+                    <div class="d-flex w-100 justify-content-between">
+                        <h6 class="mb-1">{{ entry.client_name }}</h6>
+                        <small class="text-muted">{{ entry.deleted_at.strftime('%d.%m %H:%M') }}</small>
+                    </div>
+                    <small>{{ entry.service_name }} | {{ entry.slot_info }}</small>
+                </div>
+                {% else %}
+                <p class="text-muted italic mt-2">Автоматично видалених заявок немає</p>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

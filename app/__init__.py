@@ -1,23 +1,28 @@
 from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
+from flask_login import LoginManager
+from flask_mail import Mail
 from config import Config
-from flask import Blueprint
 
 db = SQLAlchemy()
 migrate = Migrate()
-bp = Blueprint('appointments', __name__)
+login = LoginManager()
+mail = Mail()
+
+login.login_view = 'auth.login'
+login.login_message = "Будь ласка, увійдіть, щоб отримати доступ до цієї сторінки."
+login.login_message_category = "info"
 
 def create_app(config_class=Config):
-    app = Flask(__name__, 
-                template_folder='templates',
-                static_folder='static')
+    app = Flask(__name__, template_folder='templates', static_folder='static')
     app.config.from_object(config_class)
 
     db.init_app(app)
     migrate.init_app(app, db)
+    login.init_app(app)
+    mail.init_app(app)
 
-    # Реєстрація блюпринтів
     from app.main import bp as main_bp
     app.register_blueprint(main_bp)
 
@@ -31,6 +36,9 @@ def create_app(config_class=Config):
     app.register_blueprint(admin_bp, url_prefix='/admin')
 
     from app import models
-    from app.appointments import routes
-    
+
+    @login.user_loader
+    def load_user(id):
+        return models.User.query.get(int(id))
+
     return app
