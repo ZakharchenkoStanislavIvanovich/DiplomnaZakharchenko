@@ -1,87 +1,485 @@
 {% extends "base.html" %}
 {% block content %}
+<style>
+    :root {
+        --notary-olive: #556b2f;
+        --notary-grey: #343a40;
+    }
+
+    .bg-olive, .table-olive thead, .modal-header.bg-olive {
+        background-color: var(--notary-olive) !important;
+        color: white !important;
+    }
+    
+    .btn-dark-grey, .nav-pills .nav-link.active {
+        background-color: var(--notary-grey) !important;
+        border-color: var(--notary-grey) !important;
+        color: white !important;
+    }
+
+    .table-custom-header thead th {
+        background-color: var(--notary-grey) !important;
+        color: white !important;
+        border-color: var(--notary-grey) !important;
+    }
+
+    .nav-pills .nav-link { color: var(--notary-grey); font-weight: 500; }
+    .btn-dark-grey:hover { background-color: #23272b !important; }
+
+    /* Стилі для слотів залежно від статусу */
+    .slot-card { min-width: 100px; cursor: pointer; border: 1px solid #dee2e6; transition: 0.2s; border-radius: 4px; }
+    .slot-waiting { background-color: #fff3cd !important; border: 2px solid #ffc107 !important; font-weight: bold; }
+    .slot-confirmed { background-color: #d1e7dd !important; border: 2px solid #198754 !important; }
+    .slot-free { background-color: #ffffff; }
+
+    .accordion-item { border: 1px solid #dee2e6; margin-bottom: 1rem; border-radius: 8px !important; overflow: hidden; }
+    .accordion-button:not(.collapsed) { background-color: #f8f9fa; color: var(--notary-olive); box-shadow: none; }
+    .accordion-button { font-weight: bold; color: var(--notary-grey); }
+
+    .highlight-row { animation: highlight 3s ease-in-out; }
+    @keyframes highlight { 0% { background-color: #fff3cd; } 100% { background-color: transparent; } }
+
+    .actions-column { white-space: nowrap; width: 1%; }
+</style>
+
+{% set days_full = {'Monday': 'Понеділок', 'Tuesday': 'Вівторок', 'Wednesday': 'Середа', 'Thursday': 'Четвер', 'Friday': 'П’ятниця'} %}
+{% set days_short = {'Monday': 'Пн', 'Tuesday': 'Вт', 'Wednesday': 'Ср', 'Thursday': 'Чт', 'Friday': 'Пт'} %}
+
 <div class="container mt-5">
     <div class="d-flex justify-content-between align-items-center mb-4">
-        <h1 class="mb-0">Панель керування нотаріуса</h1>
-        <div>
-            <a href="{{ url_for('admin.archive') }}" class="btn btn-outline-secondary btn-sm me-3">Архів видалених</a>
-            <span class="text-muted">Адмін: <strong>{{ current_user.username }}</strong></span>
-        </div>
+        <h1 class="mb-0">Кабінет нотаріуса</h1>
+        <span class="text-muted">Адмін: <strong>{{ current_user.username }}</strong></span>
     </div>
     <hr>
-    <div class="table-responsive">
-        <table class="table table-hover align-middle">
-            <thead class="table-dark">
-                <tr>
-                    <th>ID</th>
-                    <th>Клієнт</th>
-                    <th>Послуга</th>
-                    <th>Дата / Час</th>
-                    <th>Статус</th>
-                    <th>Дії</th>
-                    <th></th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for app in appointments %}
-                <tr id="row-{{ app.id }}">
-                    <td>{{ app.id }}</td>
-                    <td><strong>{{ app.client.name }}</strong><br><small>{{ app.client.email }}</small></td>
-                    <td>{{ app.service.name }}</td>
-                    <td>{{ app.slot.date.strftime('%d.%m.%Y') }} | {{ app.slot.start_time.strftime('%H:%M') }}</td>
-                    <td>
-                        <span id="status-badge-{{ app.id }}" class="badge {% if app.status == 'підтверджено' %}bg-success{% elif app.status == 'відхилено' %}bg-danger{% else %}bg-warning text-dark{% endif %}">
-                            {{ app.status }}
-                        </span>
-                    </td>
-                    <td id="actions-{{ app.id }}">
-                        {% if app.status == 'очікує' %}
-                            <button class="btn btn-sm btn-outline-success action-btn" data-id="{{ app.id }}" data-action="confirm">Прийняти</button>
-                            <button class="btn btn-sm btn-outline-danger action-btn" data-id="{{ app.id }}" data-action="reject">Відхилити</button>
-                        {% else %}
-                            <button class="btn btn-sm btn-outline-secondary action-btn" data-id="{{ app.id }}" 
-                                    data-action="{{ 'reject' if app.status == 'підтверджено' else 'confirm' }}">
-                                Змінити на {{ 'Відхилити' if app.status == 'підтверджено' else 'Прийняти' }}
+
+    <ul class="nav nav-pills mb-4" id="adminTab" role="tablist">
+        <li class="nav-item"><button class="nav-link active" id="apps-tab" data-target="tab-apps">Активні заявки</button></li>
+        <li class="nav-item"><button class="nav-link" id="services-tab" data-target="tab-services">Послуги</button></li>
+        <li class="nav-item"><button class="nav-link" id="calendar-tab" data-target="tab-calendar">Перегляд розкладу</button></li>
+        <li class="nav-item"><button class="nav-link" id="slots-tab" data-target="tab-slots">Налаштування графіку</button></li>
+    </ul>
+
+    <div class="tab-content shadow-sm p-4 bg-white rounded border">
+        
+        <div class="tab-pane fade show active" id="tab-apps">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h5>Список активних заявок</h5>
+                <a href="{{ url_for('admin.archive') }}" class="btn btn-dark-grey btn-sm">Архів видалених</a>
+            </div>
+            <table class="table align-middle border text-center table-custom-header">
+                <thead>
+                    <tr>
+                        <th>№ п/п</th>
+                        <th>Клієнт</th>
+                        <th>Послуга</th>
+                        <th>Дата / Час</th>
+                        <th>Статус</th>
+                        <th style="min-width: 250px;">Керування статусом</th>
+                        <th>Дії</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for app in appointments %}
+                    <tr id="row-{{ app.id }}">
+                        <td>{{ loop.index }}</td>
+                        <td><strong>{{ app.client.name }}</strong><br><small>{{ app.client.email }}</small></td>
+                        <td>{{ app.service.name }}</td>
+                        <td>{{ app.slot.date.strftime('%d.%m.%Y') }} | {{ app.slot.start_time.strftime('%H:%M') }}</td>
+                        <td>
+                            <span class="badge {% if app.status == 'підтверджено' %}bg-success{% elif app.status == 'відхилено' %}bg-danger{% else %}bg-warning text-dark{% endif %}">
+                                {{ app.status }}
+                            </span>
+                        </td>
+                        <td>
+                            <div class="d-flex gap-2 justify-content-center">
+                                {% if app.status == 'очікує' %}
+                                    <button class="btn btn-sm btn-success action-btn" data-id="{{ app.id }}" data-action="confirm">
+                                        <i class="fas fa-check me-1"></i> Підтвердити
+                                    </button>
+                                    <button class="btn btn-sm btn-danger action-btn" data-id="{{ app.id }}" data-action="reject">
+                                        <i class="fas fa-times me-1"></i> Відхилити
+                                    </button>
+                                
+                                {% elif app.status == 'підтверджено' %}
+                                    <button class="btn btn-sm btn-outline-danger action-btn" data-id="{{ app.id }}" data-action="reject">
+                                        <i class="fas fa-exchange-alt me-1"></i> Змінити (Відхилити)
+                                    </button>
+                                
+                                {% elif app.status == 'відхилено' %}
+                                    {% if app.slot.is_booked %}
+                                        <span class="badge bg-secondary p-2"><i class="fas fa-lock me-1"></i> Час уже зайнятий</span>
+                                    {% else %}
+                                        <button class="btn btn-sm btn-outline-success action-btn" data-id="{{ app.id }}" data-action="confirm">
+                                            <i class="fas fa-exchange-alt me-1"></i> Змінити (Підтвердити)
+                                        </button>
+                                    {% endif %}
+                                {% endif %}
+                            </div>
+                        </td>
+                        <td>
+                            <button class="btn btn-sm btn-outline-secondary" onclick="confirmDelete('{{ app.id }}')" title="В архів">
+                                <i class="fas fa-trash-alt text-white"></i>
                             </button>
-                        {% endif %}
-                    </td>
-                    <td>
-                        <button class="btn btn-link text-danger p-0" 
-                                style="text-decoration:none; font-size:1.5rem;" 
-                                onclick="confirmDelete('{{ app.id }}')">
-                             &times;
-                        </button>
-                    </td>
-                </tr>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <div class="tab-pane fade" id="tab-services">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h5>Послуги нотаріуса</h5>
+                <button class="btn btn-dark-grey" onclick="openServiceModal()">+ Додати послугу</button>
+            </div>
+            <div class="table-responsive">
+                <table class="table align-middle border">
+                    <thead class="bg-olive">
+                        <tr>
+                            <th style="width: 50px;">№</th>
+                            <th style="width: 200px;">Назва</th>
+                            <th>Опис та документи</th>
+                            <th class="text-center actions-column">Дії</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for s in services|sort(attribute='name') %}
+                        <tr>
+                            <td>{{ loop.index }}</td>
+                            <td><strong>{{ s.name }}</strong></td>
+                            <td style="color: black;">
+                                {% set parts = s.description.split('|') %}
+                                <div class="mb-2">{{ parts[0] }}</div>
+                                {% if parts|length > 1 %}
+                                <div class="small p-2" style="background-color: #f8f9fa; border-left: 3px solid #6c757d; border-radius: 4px;">
+                                    <strong style="color: #495057; font-size: 0.75rem; text-transform: uppercase;">Необхідні документи:</strong><br>
+                                    <span class="text-muted">{{ parts[1] }}</span>
+                                </div>
+                                {% endif %}
+                            </td>
+                            <td class="text-center actions-column">
+                                <div class="d-flex gap-2 justify-content-center">
+                                    <button class="btn btn-sm btn-dark-grey" onclick="editService('{{s.id}}','{{s.name}}',`{{s.description}}`)">Редагувати</button>
+                                    <button class="btn btn-sm btn-outline-danger" onclick="deleteService('{{s.id}}')">Видалити</button>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="tab-pane fade" id="tab-calendar">
+            <h5>Візуальний розклад (Пн-Пт)</h5>
+            <div class="accordion mt-4" id="calendarAccordion">
+                {% for date_key, slots in calendar_data.items()|sort %}
+                    {% set date_obj = slots[0].date if slots else None %}
+                    {% if date_obj and date_obj.weekday() == 0 %}
+                    <div class="accordion-item">
+                        <h2 class="accordion-header">
+                            <button class="accordion-button collapsed fw-bold" type="button" data-bs-toggle="collapse" data-bs-target="#calWeek{{ loop.index }}">
+                                Тиждень: {{ date_obj.strftime('%d.%m') }} — {{ (date_obj + relativedelta(days=4)).strftime('%d.%m') }}
+                            </button>
+                        </h2>
+                        <div id="calWeek{{ loop.index }}" class="accordion-collapse collapse">
+                            <div class="accordion-body p-0">
+                                {% for d_offset in range(5) %}
+                                    {% set d_curr_obj = date_obj + relativedelta(days=d_offset) %}
+                                    {% set d_key = d_curr_obj.strftime('%Y-%m-%d') %}
+                                    {% set d_slots = calendar_data.get(d_key, []) %}
+                                    <div class="p-3 border-bottom d-flex align-items-center bg-white">
+                                        <div style="width: 200px;" class="fw-bold text-olive small">{{ d_curr_obj.strftime('%d.%m') }}, {{ days_full.get(d_curr_obj.strftime('%A'), '') }}</div>
+                                        <div class="d-flex flex-wrap gap-2">
+                                            {% for slot in d_slots|sort(attribute='start_time') %}
+                                                {% set active_app = slot.appointments[0] if slot.appointments else None %}
+                                                <div class="p-2 rounded text-center slot-card {% if active_app %}{% if active_app.status == 'підтверджено' %}slot-confirmed{% else %}slot-waiting{% endif %}{% else %}slot-free{% endif %}"
+                                                     onclick="openInfo(`{{ slot.start_time.strftime('%H:%M') }}`, `{{ d_curr_obj.strftime('%d.%m.%Y') }}`, `{{ active_app.client.name if active_app else '' }}`, `{{ active_app.service.name if active_app else '' }}`, `{{ active_app.status if active_app else '' }}`, `{{ active_app.id if active_app else '' }}`)">
+                                                    {{ slot.start_time.strftime('%H:%M') }}
+                                                </div>
+                                            {% endfor %}
+                                        </div>
+                                    </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
                 {% endfor %}
-            </tbody>
-        </table>
+            </div>
+        </div>
+
+        <div class="tab-pane fade" id="tab-slots">
+            <div class="bg-light p-4 border rounded mb-5 shadow-sm">
+                <h6 class="fw-bold mb-3">Масова генерація розкладу:</h6>
+                <div class="row g-3 align-items-end">
+                    <div class="col-md-3">
+                        <label class="small fw-bold">Початкова дата (Пн)</label>
+                        <input type="date" id="s-date" class="form-control" onchange="checkDay(this)">
+                    </div>
+                    <div class="col-md-2">
+                        <label class="small fw-bold">Період</label>
+                        <select id="s-period" class="form-select">
+                            <option value="1">1 день</option>
+                            <option value="5">1 робочий тиждень</option>
+                            <option value="20">1 місяць (4 тижні)</option>
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <label class="small fw-bold">З</label>
+                        <input type="time" id="s-start" class="form-control" value="09:00">
+                    </div>
+                    <div class="col-md-2">
+                        <label class="small fw-bold">До</label>
+                        <input type="time" id="s-end" class="form-control" value="18:00">
+                    </div>
+                    <div class="col-md-3">
+                        <button class="btn btn-dark-grey w-100" id="btn-gen" onclick="loadPreview()">Генерувати огляд</button>
+                    </div>
+                </div>
+            </div>
+
+            <div id="preview-area" class="d-none border p-3 bg-light rounded mb-5 shadow-sm">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <p class="fw-bold mb-0">Оберіть години для створення:</p>
+                    <button class="btn btn-sm btn-outline-secondary" onclick="toggleAllPreview(true)">Вибрати всі години</button>
+                </div>
+                <div id="slot-grid" class="d-flex flex-wrap gap-2 mb-3"></div>
+                <button class="btn btn-dark-grey px-4" id="btn-save-slots" onclick="saveSlots()">Зберегти для всіх днів періоду</button>
+            </div>
+
+            <div class="d-flex justify-content-between align-items-center mb-4 p-3 border rounded bg-white shadow-sm">
+                <div class="d-flex align-items-center gap-3 w-100 justify-content-between">
+                    <h5 class="mb-0 fw-bold">Ручне редагування та видалення</h5>
+                    <div class="d-flex gap-2 align-items-center">
+                        <input type="date" id="man-date" class="form-control form-control-sm" style="width: 150px;" onchange="checkDay(this)">
+                        <input type="time" id="man-time" class="form-control form-control-sm" style="width: 100px;">
+                        <button class="btn btn-success btn-sm px-3" onclick="addManSlot()">Додати</button>
+                        <div class="vr mx-2"></div>
+                        <button class="btn btn-outline-danger btn-sm px-3" id="btn-bulk-del" onclick="bulkDelete()">Видалити обрані</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="accordion shadow-sm" id="weeksAccordion">
+                {% for date_key, slots in calendar_data.items()|sort %}
+                    {% set date_obj = slots[0].date if slots else None %}
+                    {% if date_obj and date_obj.weekday() == 0 %}
+                    <div class="accordion-item" id="week-container-{{ loop.index }}">
+                        <h2 class="accordion-header">
+                            <button class="accordion-button collapsed fw-bold" type="button" data-bs-toggle="collapse" data-bs-target="#week{{ loop.index }}">
+                                Тиждень: {{ date_obj.strftime('%d.%m') }} — {{ (date_obj + relativedelta(days=4)).strftime('%d.%m') }}
+                            </button>
+                        </h2>
+                        <div id="week{{ loop.index }}" class="accordion-collapse collapse">
+                            <div class="accordion-body p-0">
+                                <div class="p-2 bg-light border-bottom d-flex justify-content-end">
+                                    <button class="btn btn-sm btn-link text-dark text-decoration-none fw-bold" onclick="selectAllInWeek('week{{ loop.index }}')">
+                                        <i class="fas fa-check-double me-1"></i> Виділити всі вільні за тиждень
+                                    </button>
+                                </div>
+                                {% for day_offset in range(5) %}
+                                    {% set d_day_obj = date_obj + relativedelta(days=day_offset) %}
+                                    {% set d_day_key = d_day_obj.strftime('%Y-%m-%d') %}
+                                    {% set d_day_slots = calendar_data.get(d_day_key, []) %}
+                                    <div class="p-3 border-bottom d-flex align-items-center bg-white">
+                                        <div style="width: 120px;" class="fw-bold text-muted">{{ d_day_obj.strftime('%d.%m') }}, {{ days_short[d_day_obj.strftime('%A')] }}</div>
+                                        <div class="d-flex flex-wrap gap-2">
+                                            {% for slot in d_day_slots|sort(attribute='start_time') %}
+                                            {% set app = slot.appointments[0] if slot.appointments else None %}
+                                            <div class="badge border text-dark p-2 d-flex align-items-center gap-1 
+                                                {% if app %}{% if app.status == 'підтверджено' %}slot-confirmed{% else %}slot-waiting{% endif %}{% else %}bg-light{% endif %}">
+                                                
+                                                {% if not app %}
+                                                    <input type="checkbox" class="bulk-delete-check" value="{{ slot.id }}">
+                                                {% else %}
+                                                    <span title="Зайнято: {{ app.client.name }}"><i class="fas fa-lock small text-danger"></i></span>
+                                                {% endif %}
+                                                
+                                                {{ slot.start_time.strftime('%H:%M') }}
+                                            </div>
+                                            {% endfor %}
+                                        </div>
+                                    </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+                {% endfor %}
+            </div>
+        </div>
     </div>
 </div>
 
+<div class="modal fade" id="infoModal" tabindex="-1"><div class="modal-dialog"><div class="modal-content shadow"><div class="modal-header bg-olive text-white"><h5 class="modal-title">Деталі</h5><button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button></div><div class="modal-body" id="infoBody"></div><div class="modal-footer" id="infoFooter"></div></div></div></div>
+<div class="modal fade" id="serviceModal" tabindex="-1"><div class="modal-dialog"><form id="serviceForm" class="modal-content shadow"><input type="hidden" id="service-id"><div class="modal-header bg-olive text-white"><h5>Послуга</h5><button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button></div><div class="modal-body"><label class="small fw-bold">Назва:</label><input type="text" id="m-name" class="form-control mb-3" required><label class="small fw-bold">Опис | Документи:</label><textarea id="m-desc" class="form-control" rows="6"></textarea></div><div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Закрити</button><button type="submit" class="btn btn-dark-grey">Зберегти</button></div></form></div></div>
+
 <script>
-async function confirmDelete(id) {
-    let confirmation = prompt("Для підтвердження видалення введіть слово: Видалити");
-    if (confirmation === "Видалити") {
-        const response = await fetch(`/admin/delete_appointment/${id}`, { method: 'POST' });
-        if (response.ok) { document.getElementById(`row-${id}`).remove(); }
+function switchTab(targetId) {
+    document.querySelectorAll('.nav-link').forEach(el => el.classList.remove('active'));
+    document.querySelectorAll('.tab-pane').forEach(el => el.classList.remove('show', 'active'));
+    const targetBtn = document.querySelector(`[data-target="${targetId}"]`);
+    if (targetBtn) targetBtn.classList.add('active');
+    const targetPane = document.getElementById(targetId);
+    if (targetPane) targetPane.classList.add('show', 'active');
+    history.replaceState(null, null, "#" + targetId);
+}
+document.querySelectorAll('.nav-link[data-target]').forEach(tab => {
+    tab.addEventListener('click', function(e) { e.preventDefault(); switchTab(this.getAttribute('data-target')); });
+});
+document.addEventListener("DOMContentLoaded", function() { let h = window.location.hash.substring(1); if (h) switchTab(h); });
+
+function checkDay(input) {
+    const d = new Date(input.value).getUTCDay();
+    if (d === 0 || d === 6) { alert("Вихідні недоступні."); input.value = ""; }
+}
+
+async function loadPreview() {
+    const date = document.getElementById('s-date').value;
+    if(!date) return alert("Оберіть дату.");
+    const res = await fetch('/admin/preview_slots', { 
+        method: 'POST', 
+        headers: {'Content-Type': 'application/json'}, 
+        body: JSON.stringify({
+            date: date, 
+            start_time: document.getElementById('s-start').value, 
+            end_time: document.getElementById('s-end').value, 
+            interval: 30
+        }) 
+    });
+    const data = await res.json();
+    const grid = document.getElementById('slot-grid'); grid.innerHTML = '';
+    data.slots.forEach(t => { 
+        grid.innerHTML += `<div class="p-2 border bg-white rounded shadow-sm small d-flex align-items-center gap-2"><input type="checkbox" class="slot-check" value="${t}"> ${t}</div>`; 
+    });
+    document.getElementById('preview-area').classList.remove('d-none');
+}
+
+function toggleAllPreview(check) {
+    document.querySelectorAll('.slot-check').forEach(c => c.checked = check);
+}
+
+async function saveSlots() {
+    const times = Array.from(document.querySelectorAll('.slot-check:checked')).map(c => c.value);
+    const startDate = document.getElementById('s-date').value;
+    const period = parseInt(document.getElementById('s-period').value);
+    
+    if(!times.length) return alert("Оберіть часові слоти.");
+
+    const btn = document.getElementById('btn-save-slots');
+    btn.innerText = "Зберігаю..."; btn.disabled = true;
+
+    const res = await fetch('/admin/bulk_generate_slots', { 
+        method: 'POST', 
+        headers: {'Content-Type': 'application/json'}, 
+        body: JSON.stringify({
+            start_date: startDate, 
+            times: times,
+            period: period
+        }) 
+    });
+
+    if (res.ok) {
+        window.location.reload();
+    } else {
+        alert("Помилка при генерації");
+        btn.innerText = "Зберегти"; btn.disabled = false;
     }
 }
 
-document.querySelectorAll('.action-btn').forEach(button => {
-    button.addEventListener('click', async function() {
-        const id = this.getAttribute('data-id');
-        const action = this.getAttribute('data-action');
-        let note = (action === 'reject') ? prompt("Вкажіть причину відхилення:") : "";
-        if (action === 'reject' && note === null) return;
+function selectAllInWeek(weekId) {
+    const weekDiv = document.getElementById(weekId);
+    const checks = weekDiv.querySelectorAll('.bulk-delete-check');
+    const allChecked = Array.from(checks).every(c => c.checked);
+    checks.forEach(c => c.checked = !allChecked);
+}
 
-        const response = await fetch(`/admin/update_status/${id}`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ action: action, note: note })
-        });
-        if (response.ok) { location.reload(); }
+async function bulkDelete() {
+    const ids = Array.from(document.querySelectorAll('.bulk-delete-check:checked')).map(c => parseInt(c.value));
+    if(!ids.length) return alert("Нічого не вибрано.");
+    if(!confirm(`Видалити обрані слоти (${ids.length} шт.)?`)) return;
+    
+    document.getElementById('btn-bulk-del').innerText = "...";
+    await fetch('/admin/delete_slots', { 
+        method: 'POST', 
+        headers: {'Content-Type': 'application/json'}, 
+        body: JSON.stringify({ids: ids}) 
     });
+    window.location.reload();
+}
+
+async function addManSlot() {
+    const d = document.getElementById('man-date').value;
+    const t = document.getElementById('man-time').value;
+    if(!d || !t) return alert("Заповніть поля.");
+    await fetch('/admin/confirm_slots', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({date: d, times: [t]}) });
+    window.location.reload();
+}
+
+function openInfo(time, date, client, service, status, appId) {
+    let b = `<p><strong>Дата:</strong> ${date} ${time}</p>`;
+    let f = `<button class="btn btn-secondary" data-bs-dismiss="modal">Закрити</button>`;
+    if (client) {
+        b += `<hr><p>Клієнт: ${client}</p><p>Послуга: ${service}</p><p>Статус: ${status}</p>`;
+        f += `<button class="btn btn-dark-grey" onclick="goToApp('${appId}')">До заявки</button>`;
+    } else { b += `<div class="alert alert-success">Слот вільний.</div>`; }
+    document.getElementById('infoBody').innerHTML = b;
+    document.getElementById('infoFooter').innerHTML = f;
+    new bootstrap.Modal(document.getElementById('infoModal')).show();
+}
+
+function goToApp(id) { 
+    bootstrap.Modal.getInstance(document.getElementById('infoModal')).hide(); 
+    switchTab('tab-apps'); 
+    setTimeout(() => { 
+        const r = document.getElementById(`row-${id}`); 
+        if(r) { r.scrollIntoView({behavior:'smooth', block:'center'}); r.classList.add('highlight-row'); } 
+    }, 100); 
+}
+
+async function confirmDelete(id) { if (confirm("Архівувати обрану заявку?")) { await fetch(`/admin/delete_appointment/${id}`, {method:'POST'}); window.location.reload(); } }
+
+document.querySelectorAll('.action-btn').forEach(btn => {
+    btn.onclick = async function() {
+        const id = this.dataset.id, act = this.dataset.action;
+        let note = "";
+        if (act === 'reject') {
+            note = prompt("Вкажіть причину скасування (опціонально):");
+            if (note === null) return;
+        }
+        
+        try {
+            const res = await fetch(`/admin/update_status/${id}`, {
+                method:'POST', 
+                headers:{'Content-Type':'application/json'}, 
+                body:JSON.stringify({action:act, note:note})
+            });
+            const result = await res.json();
+            
+            if (result.status === 'success') {
+                window.location.reload();
+            } else {
+                alert(result.message || "Помилка оновлення статусу");
+            }
+        } catch (e) {
+            alert("Помилка зв'язку з сервером");
+        }
+    }
 });
+
+function openServiceModal() { document.getElementById('serviceForm').reset(); document.getElementById('service-id').value = ''; new bootstrap.Modal(document.getElementById('serviceModal')).show(); }
+function editService(id, n, d) { document.getElementById('service-id').value = id; document.getElementById('m-name').value = n; document.getElementById('m-desc').value = d; new bootstrap.Modal(document.getElementById('serviceModal')).show(); }
+document.getElementById('serviceForm').onsubmit = async (e) => { 
+    e.preventDefault(); 
+    const id = document.getElementById('service-id').value; 
+    const fd = new FormData(); 
+    fd.append('name', document.getElementById('m-name').value); 
+    fd.append('description', document.getElementById('m-desc').value); 
+    fd.append('price', 0); 
+    await fetch(id ? `/admin/services/edit/${id}` : '/admin/services/add', { method: 'POST', body: fd }); 
+    window.location.reload(); 
+};
+async function deleteService(id) { if(confirm("Видалити?")) { const res = await fetch(`/admin/services/delete/${id}`, {method:'POST'}); if(!res.ok) alert("Є записи!"); else window.location.reload(); } }
 </script>
 {% endblock %}

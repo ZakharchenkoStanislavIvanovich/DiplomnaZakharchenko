@@ -32,3 +32,4 @@ email-validator==2.1.1
 psycopg[binary]
 pytest
 Flask-Mail
+python-dateutil

@@ -1,24 +1,28 @@
-<div style="font-family: sans-serif; border: 1px solid #f8d7da; padding: 25px; max-width: 600px; color: #333;">
-  <h2 style="color: #721c24; border-bottom: 2px solid #dc3545; padding-bottom: 10px;">Скасування запису</h2>
+<div style="font-family: 'Segoe UI', Tahoma, sans-serif; border: 1px solid #e0e0e0; padding: 30px; max-width: 600px; color: #333; line-height: 1.6;">
+  <h2 style="color: #dc3545; border-bottom: 2px solid #dc3545; padding-bottom: 10px; margin-top: 0;">Заявку відхилено</h2>
   
-  <p>Шановний(-а) <strong>{{ appointment.client.name }}</strong>, повідомляємо, що ваш запис на послугу "{{ appointment.service.name }}" скасовано.</p>
+  <p>Шановний(-а) <strong>{{ appointment.client.name }}</strong>, інформуємо вас, що вашу заявку на послугу "{{ appointment.service.name }}" було відхилено.</p>
 
   {% if note %}
-  <div style="background: #fff; border-left: 4px solid #dc3545; padding: 15px; margin: 20px 0;">
-    <strong>Причина скасування:</strong><br>
-    <span style="color: #555;">{{ note }}</span>
+  <div style="background: #fff5f5; border-left: 4px solid #dc3545; padding: 20px; margin: 25px 0; border-radius: 4px;">
+    <h3 style="margin-top: 0; font-size: 16px; color: #bd2130; text-transform: uppercase;">Причина відхилення:</h3>
+    <div style="color: #333; font-style: italic; margin-top: 5px;">"{{ note }}"</div>
+  </div>
+  {% else %}
+  <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; border: 1px solid #eee; margin: 25px 0;">
+    <p style="margin: 0; color: #666;">На жаль, обраний вами час став недоступним або виникли технічні причини.</p>
   </div>
   {% endif %}
 
-  <p>Для узгодження іншого часу ви можете оформити нову заявку на сайті або зателефонувати нам за вказаними нижче контактами.</p>
+  <p style="font-size: 14px; color: #666;">Ви можете спробувати обрати інший час на нашому сайті або зателефонувати нам для консультації.</p>
 
-  <hr style="border: none; border-top: 1px solid #eee; margin: 25px 0;">
+  <hr style="border: none; border-top: 1px solid #eee; margin: 30px 0;">
   
-  <h4 style="margin-bottom: 10px;">Контактна інформація:</h4>
-  <p style="font-size: 14px; line-height: 1.6; margin: 0;">
-    Телефон: +380-67-123-45-67<br>
-    Електронна адреса: tviy.notarius@gmail.com<br>
-    Viber: +380-67-123-45-67<br>
-    WhatsApp: +380-67-123-45-67
+  <h4 style="margin-bottom: 10px; color: #333;">Наші контакти:</h4>
+  <p style="font-size: 14px; line-height: 1.8; margin: 0; color: #555;">
+    <strong>Телефон:</strong> +380-67-123-45-67<br>
+    <strong>Email:</strong> tviy.notarius@gmail.com<br>
+    <strong>Viber:</strong> +380-67-123-45-67<br>
+    <strong>WhatsApp:</strong> +380-67-123-45-67
   </p>
 </div>

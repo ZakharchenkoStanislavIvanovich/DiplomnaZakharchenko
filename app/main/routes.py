@@ -1,8 +1,7 @@
+from flask import render_template
 from app.main import bp
-from flask import render_template, redirect, url_for, flash
-from app.main.forms import RegistrationForm
-from app import db
-from app.models import Client, Service
+from app.models import Service
+
 @bp.route('/')
 def index():
     return render_template('main/index.html')
@@ -15,19 +14,3 @@ def contacts():
 def services_list():
     services = Service.query.order_by(Service.name.asc()).all()
     return render_template('main/services.html', services=services)
-
-@bp.route('/register', methods=['GET', 'POST'])
-def register():
-    form = RegistrationForm()
-    if form.validate_on_submit():
-        existing_client = Client.query.filter_by(email=form.email.data).first()
-        if existing_client:
-            flash('Клієнт з таким email вже зареєстрований.', 'warning')
-            return redirect(url_for('main.register'))
-
-        new_client = Client(name=form.name.data, email=form.email.data)
-        db.session.add(new_client)
-        db.session.commit()
-        flash('Реєстрація успішна!', 'success')
-        return redirect(url_for('main.index'))
-    return render_template('main/register.html', form=form)

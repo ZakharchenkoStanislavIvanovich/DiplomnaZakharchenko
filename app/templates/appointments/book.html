@@ -59,7 +59,6 @@
         <form id="appointmentForm" method="POST">
             {{ form.hidden_tag() }}
 
-            <!-- Ім'я -->
             <div class="mb-3">
                 {{ form.name.label(class="form-label") }}
                 {{ form.name(class="form-control", placeholder="Введіть ваше ім'я") }}
@@ -68,7 +67,6 @@
                 {% endfor %}
             </div>
 
-            <!-- Email -->
             <div class="mb-3">
                 {{ form.email.label(class="form-label") }}
                 {{ form.email(class="form-control", placeholder="Введіть ваш email") }}
@@ -77,7 +75,6 @@
                 {% endfor %}
             </div>
 
-            <!-- Послуга -->
             <div class="mb-3">
                 {{ form.service_id.label(class="form-label") }}
                 <div class="d-flex gap-2">
@@ -92,16 +89,16 @@
                 </div>
             </div>
 
-            <!-- Дата -->
             <div class="mb-3">
                 {{ form.date.label(class="form-label") }}
+                {# Додаємо min для поточної дати через JS нижче #}
                 {{ form.date(class="form-control", id="date") }}
                 {% for error in form.date.errors %}
                 <div class="text-danger small">{{ error }}</div>
                 {% endfor %}
+                <div id="weekendError" class="text-danger small" style="display:none;">Вибачте, нотаріус не працює у вихідні дні.</div>
             </div>
 
-            <!-- Час -->
             <div class="mb-3">
                 {{ form.time_id.label(class="form-label") }}
                 {{ form.time_id(class="form-select", id="time_id") }}
@@ -114,7 +111,6 @@
         </form>
     </div>
 
-    <!-- Права частина: політика конфіденційності -->
     <div style="flex: 1 1 400px; min-width: 300px; border: 2px solid #343a40; border-radius: 15px; 
                 padding: 20px; display: flex; flex-direction: column; max-height: 535px;">
         <h3 style="font-weight: 700; margin-bottom: 15px;">Політика конфіденційності</h3>
@@ -222,16 +218,22 @@
             <div id="privacyError" class="text-danger small" style="display:none;">Ви повинні погодитися з політикою конфіденційності.</div>
         </div>
     </div>
-
 </div>
 
 <script>
 document.addEventListener("DOMContentLoaded", function () {
+    const form = document.getElementById("appointmentForm");
     const dateInput = document.getElementById("date");
     const timeSelect = document.getElementById("time_id");
     const serviceSelect = document.getElementById("service_select");
     const infoButton = document.getElementById("infoButton");
-    
+    const privacyCheck = document.getElementById("privacyCheck");
+    const privacyError = document.getElementById("privacyError");
+    const weekendError = document.getElementById("weekendError");
+
+    const today = new Date().toISOString().split('T')[0];
+    dateInput.setAttribute('min', today);
+
     function setInitialTimeState() {
         timeSelect.innerHTML = '<option value="" disabled selected>Спочатку оберіть дату</option>';
         timeSelect.disabled = true;
@@ -253,52 +255,71 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
     function loadTimesFor(dateStr) {
-            timeSelect.innerHTML = '<option value="">Завантаження...</option>';
-            timeSelect.disabled = true;
-            timeSelect.style.color = "#6c757d"; // Сірий під час завантаження
-
-            fetch(`/appointments/available_times?date=${dateStr}`)
-                .then(response => response.json())
-                .then(times => {
-                    if (!times || times.length === 0) {
-                        timeSelect.innerHTML = '<option value="" disabled selected>Немає вільних годин</option>';
-                    } else {
-                        timeSelect.innerHTML = '<option value="" disabled selected>Оберіть час</option>';
-                        times.forEach(t => {
-                            const option = document.createElement("option");
-                            option.value = t.id;
-                            option.textContent = t.display;
-                            option.style.color = "#343a40";
-                            timeSelect.appendChild(option);
-                        });
-                        timeSelect.disabled = false;
-                    }
-                })
-            .catch(err => {
+        timeSelect.innerHTML = '<option value="">Завантаження...</option>';
+        timeSelect.disabled = true;
+        
+        fetch(`/appointments/available_times?date=${dateStr}`)
+            .then(response => response.json())
+            .then(times => {
+                if (!times || times.length === 0) {
+                    timeSelect.innerHTML = '<option value="" disabled selected>Немає вільних годин</option>';
+                } else {
+                    timeSelect.innerHTML = '<option value="" disabled selected>Оберіть час</option>';
+                    times.forEach(t => {
+                        const option = document.createElement("option");
+                        option.value = t.id;
+                        option.textContent = t.display;
+                        timeSelect.appendChild(option);
+                    });
+                    timeSelect.disabled = false;
+                    timeSelect.style.color = "#343a40";
+                }
+            })
+            .catch(() => {
                 timeSelect.innerHTML = '<option value="" disabled>Помилка завантаження</option>';
-                timeSelect.disabled = true;
             });
     }
 
-    serviceSelect.addEventListener("change", updateInfoLink);
-    
     dateInput.addEventListener("change", function () {
-        if (this.value) {
-            loadTimesFor(this.value);
-        } else {
+        const date = new Date(this.value);
+        const day = date.getUTCDay();
+        
+        if (day === 0 || day === 6) {
+            this.value = "";
+            weekendError.style.display = "block";
             setInitialTimeState();
+        } else {
+            weekendError.style.display = "none";
+            if (this.value) {
+                loadTimesFor(this.value);
+            } else {
+                setInitialTimeState();
+            }
         }
     });
 
+    form.addEventListener("submit", function (event) {
+        if (!privacyCheck.checked) {
+            event.preventDefault();
+            privacyError.style.display = "block";
+            privacyCheck.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        } else {
+            privacyError.style.display = "none";
+        }
+    });
+
+    privacyCheck.addEventListener("change", function() {
+        if (this.checked) privacyError.style.display = "none";
+    });
+
+    serviceSelect.addEventListener("change", updateInfoLink);
     updateInfoLink();
+
     if (dateInput.value) {
         loadTimesFor(dateInput.value);
     } else {
         setInitialTimeState();
     }
-    timeSelect.addEventListener('change', function() {
-            this.style.color = this.value ? "#343a40" : "#6c757d";
-        });
 });
 </script>
 {% endblock %}

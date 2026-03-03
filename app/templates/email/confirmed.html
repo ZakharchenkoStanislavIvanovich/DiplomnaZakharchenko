@@ -1,26 +1,35 @@
-<div style="font-family: sans-serif; border: 1px solid #d4edda; padding: 25px; max-width: 600px; color: #333;">
-  <h2 style="color: #155724; border-bottom: 2px solid #28a745; padding-bottom: 10px;">Заявку підтверджено</h2>
+<div style="font-family: 'Segoe UI', Tahoma, sans-serif; border: 1px solid #e0e0e0; padding: 30px; max-width: 600px; color: #333; line-height: 1.6;">
+  <h2 style="color: #28a745; border-bottom: 2px solid #28a745; padding-bottom: 10px; margin-top: 0;">Заявку підтверджено</h2>
   
-  <p>Шановний(-а) <strong>{{ appointment.client.name }}</strong>, інформуємо вас, що ваш запис підтверджено.</p>
+  <p>Шановний(-а) <strong>{{ appointment.client.name }}</strong>, ваш запис успішно підтверджено нотаріусом.</p>
 
-  <div style="background: #f0fff4; padding: 15px; border-radius: 8px; border: 1px solid #c3e6cb; margin: 20px 0;">
-    <h3 style="margin-top: 0; font-size: 16px; color: #155724;">Деталі прийому:</h3>
-    <p style="margin: 5px 0;">Дата: <strong>{{ appointment.slot.date.strftime('%d.%m.%Y') }}</strong></p>
-    <p style="margin: 5px 0;">Час: <strong>{{ appointment.slot.start_time.strftime('%H:%M') }}</strong></p>
-    <p style="margin: 5px 0;">Послуга: <strong>{{ appointment.service.name }}</strong></p>
+  <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; border: 1px solid #dee2e6; margin: 25px 0;">
+    <h3 style="margin-top: 0; font-size: 16px; color: #333; text-transform: uppercase;">Інформація про запис:</h3>
+    <table style="width: 100%; border-collapse: collapse;">
+      <tr><td style="padding: 5px 0; color: #666; width: 120px;">Послуга:</td><td><strong>{{ appointment.service.name }}</strong></td></tr>
+      <tr><td style="padding: 5px 0; color: #666;">Дата:</td><td><strong>{{ appointment.slot.date.strftime('%d.%m.%Y') }}</strong></td></tr>
+      <tr><td style="padding: 5px 0; color: #666;">Час:</td><td><strong>{{ appointment.slot.start_time.strftime('%H:%M') }}</strong></td></tr>
+    </table>
   </div>
 
-  <div style="background: #fff9db; padding: 10px; border-radius: 5px; font-size: 13px; color: #856404; margin-bottom: 20px; border-left: 4px solid #ffc107;">
-    Важливо: Для вчинення нотаріальної дії просимо мати при собі оригінал паспорта та реєстраційний номер облікової картки платника податків.
+  <div style="background: #f1f3f5; padding: 15px; border-radius: 5px; font-size: 14px; color: #495057; margin-bottom: 25px; border-left: 4px solid #adb5bd;">
+    <strong>Необхідні документи для цієї послуги:</strong><br>
+    <div style="margin-top: 8px;">
+      {% if '|' in appointment.service.description %}
+        {{ appointment.service.description.split('|')[-1].strip() }}
+      {% else %}
+        Оригінал паспорта та ідентифікаційного коду (ІПН).
+      {% endif %}
+    </div>
   </div>
 
-  <hr style="border: none; border-top: 1px solid #eee; margin: 25px 0;">
+  <hr style="border: none; border-top: 1px solid #eee; margin: 30px 0;">
   
-  <h4 style="margin-bottom: 10px;">Контактна інформація:</h4>
-  <p style="font-size: 14px; line-height: 1.6; margin: 0;">
-    Телефон: +380-67-123-45-67<br>
-    Електронна адреса: tviy.notarius@gmail.com<br>
-    Viber: +380-67-123-45-67<br>
-    WhatsApp: +380-67-123-45-67
+  <h4 style="margin-bottom: 10px; color: #333;">Наші контакти:</h4>
+  <p style="font-size: 14px; line-height: 1.8; margin: 0; color: #555;">
+    <strong>Телефон:</strong> +380-67-123-45-67<br>
+    <strong>Email:</strong> tviy.notarius@gmail.com<br>
+    <strong>Viber:</strong> +380-67-123-45-67<br>
+    <strong>WhatsApp:</strong> +380-67-123-45-67
   </p>
 </div>
