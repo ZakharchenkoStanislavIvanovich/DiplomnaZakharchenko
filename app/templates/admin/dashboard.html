@@ -26,12 +26,10 @@
     .nav-pills .nav-link { color: var(--notary-grey); font-weight: 500; }
     .btn-dark-grey:hover { background-color: #23272b !important; }
 
-    /* Стилі для слотів залежно від статусу */
     .slot-card { min-width: 100px; cursor: pointer; border: 1px solid #dee2e6; transition: 0.2s; border-radius: 4px; }
-    .slot-waiting { background-color: #fff3cd !important; border: 2px solid #ffc107 !important; font-weight: bold; }
+    .slot-waiting { background-color: #fff3cd !important; border: 2px solid #ffc107 !important; }
     .slot-confirmed { background-color: #d1e7dd !important; border: 2px solid #198754 !important; }
-    /* НОВИЙ СТИЛЬ ДЛЯ ВІДХИЛЕНИХ */
-    .slot-rejected { background-color: #f8d7da !important; border: 2px solid #dc3545 !important; color: #842029; }
+    .slot-rejected { background-color: #f8d7da !important; border: 2px solid #dc3545 !important; }
     .slot-free { background-color: #ffffff; }
 
     .accordion-item { border: 1px solid #dee2e6; margin-bottom: 1rem; border-radius: 8px !important; overflow: hidden; }
@@ -101,7 +99,7 @@
                                     <button class="btn btn-sm btn-outline-danger action-btn" data-id="{{ app.id }}" data-action="reject">Змінити (Відхилити)</button>
                                 {% elif app.status == 'відхилено' %}
                                     {% if app.slot.is_booked %}
-                                        <span class="badge bg-secondary p-2"><i class="fas fa-lock me-1"></i> Час уже зайнятий</span>
+                                        <span class="badge bg-secondary p-2"><i class="fas fa-lock me-1"></i> Час вже зайнятий</span>
                                     {% else %}
                                         <button class="btn btn-sm btn-outline-success action-btn" data-id="{{ app.id }}" data-action="confirm">Змінити (Підтвердити)</button>
                                     {% endif %}
@@ -232,9 +230,18 @@
                         <input type="time" id="s-end" class="form-control" value="18:00">
                     </div>
                     <div class="col-md-3">
-                        <button class="btn btn-dark-grey w-100" id="btn-gen" onclick="loadPreview()">Генерувати огляд</button>
+                        <button class="btn btn-dark-grey w-100" onclick="loadPreview()">Генерувати огляд</button>
                     </div>
                 </div>
+            </div>
+
+            <div id="preview-area" class="d-none border p-3 bg-light rounded mb-5 shadow-sm">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <p class="fw-bold mb-0">Оберіть години для створення:</p>
+                    <button class="btn btn-sm btn-outline-secondary" onclick="toggleAllPreview(true)">Вибрати всі години</button>
+                </div>
+                <div id="slot-grid" class="d-flex flex-wrap gap-2 mb-3"></div>
+                <button class="btn btn-dark-grey px-4" id="btn-save-slots" onclick="saveSlots()">Зберегти для всіх днів періоду</button>
             </div>
 
             <div class="d-flex justify-content-between align-items-center mb-4 p-3 border rounded bg-white shadow-sm">
@@ -352,16 +359,45 @@ function checkDay(input, errorId) {
 async function loadPreview() {
     const date = document.getElementById('s-date').value;
     if(!date) return alert("Оберіть дату.");
-    const res = await fetch('/admin/preview_slots', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({date: date, start_time: document.getElementById('s-start').value, end_time: document.getElementById('s-end').value, interval: 30}) });
+    const res = await fetch('/admin/preview_slots', { 
+        method: 'POST', 
+        headers: {'Content-Type': 'application/json'}, 
+        body: JSON.stringify({
+            date: date, 
+            start_time: document.getElementById('s-start').value, 
+            end_time: document.getElementById('s-end').value,
+            interval: 30
+        }) 
+    });
     const data = await res.json();
-    const grid = document.getElementById('slot-grid'); grid.innerHTML = '';
-    data.slots.forEach(t => grid.innerHTML += `<div class="p-2 border bg-white rounded shadow-sm small d-flex align-items-center gap-2"><input type="checkbox" class="slot-check" value="${t}"> ${t}</div>`);
-    document.getElementById('preview-area')?.classList.remove('d-none');
+    const grid = document.getElementById('slot-grid'); 
+    grid.innerHTML = '';
+    
+    data.slots.forEach(t => {
+        grid.innerHTML += `
+            <div class="p-2 border bg-white rounded shadow-sm small d-flex align-items-center gap-2">
+                <input type="checkbox" class="slot-check" value="${t}"> ${t}
+            </div>`;
+    });
+    
+    document.getElementById('preview-area').classList.remove('d-none');
+}
+
+function toggleAllPreview(check) {
+    document.querySelectorAll('.slot-check').forEach(c => c.checked = check);
 }
 
 async function saveSlots() {
     const times = Array.from(document.querySelectorAll('.slot-check:checked')).map(c => c.value);
-    await fetch('/admin/bulk_generate_slots', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({start_date: document.getElementById('s-date').value, times: times, period: document.getElementById('s-period').value}) });
+    const startDate = document.getElementById('s-date').value;
+    const period = parseInt(document.getElementById('s-period').value);
+    if(!times.length) return alert("Оберіть часові слоти.");
+
+    const res = await fetch('/admin/bulk_generate_slots', { 
+        method: 'POST', 
+        headers: {'Content-Type': 'application/json'}, 
+        body: JSON.stringify({start_date: startDate, times: times, period: period}) 
+    });
     window.location.reload();
 }
 
@@ -374,13 +410,24 @@ function selectAllInWeek(weekId) {
 
 async function bulkDelete() {
     const ids = Array.from(document.querySelectorAll('.bulk-delete-check:checked')).map(c => parseInt(c.value));
-    if(!ids.length || !confirm("Видалити?")) return;
-    await fetch('/admin/delete_slots', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ids: ids}) });
+    if(!ids.length || !confirm("Видалити обрані слоти?")) return;
+    await fetch('/admin/delete_slots', { 
+        method: 'POST', 
+        headers: {'Content-Type': 'application/json'}, 
+        body: JSON.stringify({ids: ids}) 
+    });
     window.location.reload();
 }
 
 async function addManSlot() {
-    await fetch('/admin/confirm_slots', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({date: document.getElementById('man-date').value, times: [document.getElementById('man-time').value]}) });
+    const d = document.getElementById('man-date').value;
+    const t = document.getElementById('man-time').value;
+    if(!d || !t) return alert("Заповніть дату та час.");
+    await fetch('/admin/confirm_slots', { 
+        method: 'POST', 
+        headers: {'Content-Type': 'application/json'}, 
+        body: JSON.stringify({date: d, times: [t]}) 
+    });
     window.location.reload();
 }
 
@@ -393,7 +440,7 @@ function openInfo(time, date, client, service, status, appId) {
 
 function goToApp(id) { bootstrap.Modal.getInstance(document.getElementById('infoModal')).hide(); switchTab('tab-apps'); setTimeout(() => { const r = document.getElementById(`row-${id}`); if(r){r.scrollIntoView({behavior:'smooth', block:'center'}); r.classList.add('highlight-row');} }, 100); }
 
-async function confirmDelete(id) { if (confirm("В архів?")) { await fetch(`/admin/delete_appointment/${id}`, {method:'POST'}); window.location.reload(); } }
+async function confirmDelete(id) { if (confirm("Архівувати обрану заявку?")) { await fetch(`/admin/delete_appointment/${id}`, {method:'POST'}); window.location.reload(); } }
 
 document.querySelectorAll('.action-btn').forEach(btn => {
     btn.onclick = async function() {
@@ -414,6 +461,6 @@ document.getElementById('serviceForm').onsubmit = async (e) => {
     await fetch(id ? `/admin/services/edit/${id}` : '/admin/services/add', { method: 'POST', body: fd });
     window.location.reload();
 };
-async function deleteService(id) { if(confirm("Видалити?")) { await fetch(`/admin/services/delete/${id}`, {method:'POST'}); window.location.reload(); } }
+async function deleteService(id) { if(confirm("Видалити послугу?")) { await fetch(`/admin/services/delete/${id}`, {method:'POST'}); window.location.reload(); } }
 </script>
 {% endblock %}
