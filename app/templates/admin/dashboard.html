@@ -98,11 +98,7 @@
                                 {% elif app.status == 'підтверджено' %}
                                     <button class="btn btn-sm btn-outline-danger action-btn" data-id="{{ app.id }}" data-action="reject">Змінити (Відхилити)</button>
                                 {% elif app.status == 'відхилено' %}
-                                    {% if app.slot.is_booked %}
-                                        <span class="badge bg-secondary p-2"><i class="fas fa-lock me-1"></i> Час вже зайнятий</span>
-                                    {% else %}
-                                        <button class="btn btn-sm btn-outline-success action-btn" data-id="{{ app.id }}" data-action="confirm">Змінити (Підтвердити)</button>
-                                    {% endif %}
+                                    <button class="btn btn-sm btn-outline-success action-btn" data-id="{{ app.id }}" data-action="confirm">Змінити (Підтвердити)</button>
                                 {% endif %}
                             </div>
                         </td>
@@ -163,50 +159,57 @@
         <div class="tab-pane fade" id="tab-calendar">
             <h5>Візуальний розклад (Пн-Пт)</h5>
             <div class="accordion mt-4" id="calendarAccordion">
-                {% for date_key, slots in calendar_data.items()|sort %}
-                    {% set date_obj = slots[0].date if slots else None %}
-                    {% if date_obj and date_obj.weekday() == 0 %}
-                    <div class="accordion-item">
-                        <h2 class="accordion-header">
-                            <button class="accordion-button collapsed fw-bold" type="button" data-bs-toggle="collapse" data-bs-target="#calWeek{{ loop.index }}">
-                                Тиждень: {{ date_obj.strftime('%d.%m') }} — {{ (date_obj + relativedelta(days=4)).strftime('%d.%m') }}
-                            </button>
-                        </h2>
-                        <div id="calWeek{{ loop.index }}" class="accordion-collapse collapse">
-                            <div class="accordion-body p-0">
-                                {% for d_offset in range(5) %}
-                                    {% set d_curr_obj = date_obj + relativedelta(days=d_offset) %}
-                                    {% set d_key = d_curr_obj.strftime('%Y-%m-%d') %}
-                                    {% set d_slots = calendar_data.get(d_key, []) %}
-                                    <div class="p-3 border-bottom d-flex align-items-center bg-white">
-                                        <div style="width: 200px;" class="fw-bold text-olive small">{{ d_curr_obj.strftime('%d.%m') }}, {{ days_full.get(d_curr_obj.strftime('%A'), '') }}</div>
-                                        <div class="d-flex flex-wrap gap-2">
-                                            {% for slot in d_slots|sort(attribute='start_time') %}
-                                                {% set active_app = slot.appointments[0] if slot.appointments else None %}
-                                                <div class="p-2 rounded text-center slot-card 
-                                                    {% if active_app %}
-                                                        {% if active_app.status == 'підтверджено' %}slot-confirmed
-                                                        {% elif active_app.status == 'відхилено' %}slot-rejected
-                                                        {% else %}slot-waiting{% endif %}
-                                                    {% else %}slot-free{% endif %}"
-                                                     onclick="openInfo(`{{ slot.start_time.strftime('%H:%M') }}`, `{{ d_curr_obj.strftime('%d.%m.%Y') }}`, `{{ active_app.client.name if active_app else '' }}`, `{{ active_app.service.name if active_app else '' }}`, `{{ active_app.status if active_app else '' }}`, `{{ active_app.id if active_app else '' }}`)">
-                                                    {{ slot.start_time.strftime('%H:%M') }}
-                                                </div>
-                                            {% endfor %}
-                                        </div>
+                {% set weeks = [] %}
+                {% for date_key, slots in calendar_data.items() %}
+                    {% set d_obj = slots[0].date %}
+                    {% set monday = d_obj - relativedelta(days=d_obj.weekday()) %}
+                    {% if monday not in weeks %}
+                        {% set _ = weeks.append(monday) %}
+                    {% endif %}
+                {% endfor %}
+
+                {% for monday in weeks|sort %}
+                <div class="accordion-item">
+                    <h2 class="accordion-header">
+                        <button class="accordion-button collapsed fw-bold" type="button" data-bs-toggle="collapse" data-bs-target="#calWeek{{ loop.index }}">
+                            Тиждень: {{ monday.strftime('%d.%m') }} — {{ (monday + relativedelta(days=4)).strftime('%d.%m') }}
+                        </button>
+                    </h2>
+                    <div id="calWeek{{ loop.index }}" class="accordion-collapse collapse">
+                        <div class="accordion-body p-0">
+                            {% for d_offset in range(5) %}
+                                {% set d_curr_obj = monday + relativedelta(days=d_offset) %}
+                                {% set d_key = d_curr_obj.strftime('%Y-%m-%d') %}
+                                {% set d_slots = calendar_data.get(d_key, []) %}
+                                {% if d_slots %}
+                                <div class="p-3 border-bottom d-flex align-items-center bg-white">
+                                    <div style="width: 200px;" class="fw-bold text-olive small">{{ d_curr_obj.strftime('%d.%m') }}, {{ days_full.get(d_curr_obj.strftime('%A'), '') }}</div>
+                                    <div class="d-flex flex-wrap gap-2">
+                                        {% for slot in d_slots|sort(attribute='start_time') %}
+                                            {% set active_app = slot.appointments[0] if slot.appointments else None %}
+                                            <div class="p-2 rounded text-center slot-card 
+                                                {% if active_app %}
+                                                    {% if active_app.status == 'підтверджено' %}slot-confirmed
+                                                    {% elif active_app.status == 'відхилено' %}slot-rejected
+                                                    {% else %}slot-waiting{% endif %}
+                                                {% else %}slot-free{% endif %}"
+                                                 onclick="openInfo(`{{ slot.start_time.strftime('%H:%M') }}`, `{{ d_curr_obj.strftime('%d.%m.%Y') }}`, `{{ active_app.client.name if active_app else '' }}`, `{{ active_app.service.name if active_app else '' }}`, `{{ active_app.status if active_app else '' }}`, `{{ active_app.id if active_app else '' }}`)">
+                                                {{ slot.start_time.strftime('%H:%M') }}
+                                            </div>
+                                        {% endfor %}
                                     </div>
-                                {% endfor %}
-                            </div>
+                                </div>
+                                {% endif %}
+                            {% endfor %}
                         </div>
                     </div>
-                    {% endif %}
+                </div>
                 {% endfor %}
             </div>
         </div>
 
         <div class="tab-pane fade" id="tab-slots">
             <div class="bg-light p-4 border rounded mb-5 shadow-sm">
-                <h6 class="fw-bold mb-3">Масова генерація розкладу:</h6>
                 <div class="row g-3 align-items-end">
                     <div class="col-md-3">
                         <label class="small fw-bold">Початкова дата (Пн)</label>
@@ -230,7 +233,12 @@
                         <input type="time" id="s-end" class="form-control" value="18:00">
                     </div>
                     <div class="col-md-3">
-                        <button class="btn btn-dark-grey w-100" onclick="loadPreview()">Генерувати огляд</button>
+                        <div class="d-grid gap-2">
+                            <button class="btn btn-dark-grey" onclick="loadPreview()">Генерувати нові слоти</button>
+                            <button class="btn btn-outline-danger btn-sm" id="btn-bulk-del" onclick="bulkDelete()">
+                                <i class="fas fa-trash-alt me-1"></i> Видалити обрані
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -244,67 +252,59 @@
                 <button class="btn btn-dark-grey px-4" id="btn-save-slots" onclick="saveSlots()">Зберегти для всіх днів періоду</button>
             </div>
 
-            <div class="d-flex justify-content-between align-items-center mb-4 p-3 border rounded bg-white shadow-sm">
-                <div class="d-flex align-items-center gap-3 w-100 justify-content-between">
-                    <h5 class="mb-0 fw-bold">Ручне редагування</h5>
-                    <div class="d-flex gap-2 align-items-center">
-                        <div class="position-relative">
-                            <input type="date" id="man-date" class="form-control form-control-sm" style="width: 150px;" onchange="checkDay(this, 'man-weekendError')">
-                            <div id="man-weekendError" class="text-danger small position-absolute" style="display:none; white-space: nowrap; top: 100%;">Вихідні недоступні.</div>
+            <div class="accordion shadow-sm" id="weeksAccordion">
+                {% set weeks_man = [] %}
+                {% for date_key, slots in calendar_data.items() %}
+                    {% set d_obj = slots[0].date %}
+                    {% set monday = d_obj - relativedelta(days=d_obj.weekday()) %}
+                    {% if monday not in weeks_man %}
+                        {% set _ = weeks_man.append(monday) %}
+                    {% endif %}
+                {% endfor %}
+
+                {% for monday in weeks_man|sort %}
+                <div class="accordion-item" id="week-container-{{ loop.index }}">
+                    <h2 class="accordion-header">
+                        <button class="accordion-button collapsed fw-bold" type="button" data-bs-toggle="collapse" data-bs-target="#week{{ loop.index }}">
+                            Тиждень: {{ monday.strftime('%d.%m') }} — {{ (monday + relativedelta(days=4)).strftime('%d.%m') }}
+                        </button>
+                    </h2>
+                    <div id="week{{ loop.index }}" class="accordion-collapse collapse">
+                        <div class="accordion-body p-0">
+                            <div class="p-2 bg-light border-bottom d-flex justify-content-end">
+                                <button class="btn btn-sm btn-link text-dark text-decoration-none fw-bold" onclick="selectAllInWeek('week{{ loop.index }}')">
+                                    <i class="fas fa-check-double me-1"></i> Виділити всі вільні за тиждень
+                                </button>
+                            </div>
+                            {% for day_offset in range(5) %}
+                                {% set d_day_obj = monday + relativedelta(days=day_offset) %}
+                                {% set d_day_key = d_day_obj.strftime('%Y-%m-%d') %}
+                                {% set d_day_slots = calendar_data.get(d_day_key, []) %}
+                                {% if d_day_slots %}
+                                <div class="p-3 border-bottom d-flex align-items-center bg-white">
+                                    <div style="width: 120px;" class="fw-bold text-muted">{{ d_day_obj.strftime('%d.%m') }}, {{ days_short[d_day_obj.strftime('%A')] }}</div>
+                                    <div class="d-flex flex-wrap gap-2">
+                                        {% for slot in d_day_slots|sort(attribute='start_time') %}
+                                            {% set app = slot.appointments[0] if slot.appointments else None %}
+                                            <div class="badge border text-dark p-2 d-flex align-items-center gap-1 
+                                                {% if app %}
+                                                    {% if app.status == 'підтверджено' %}slot-confirmed
+                                                    {% elif app.status == 'відхилено' %}slot-rejected
+                                                    {% else %}slot-waiting{% endif %}
+                                                {% else %}bg-light{% endif %}">
+                                                {% if not app %}
+                                                    <input type="checkbox" class="bulk-delete-check" value="{{ slot.id }}">
+                                                {% endif %}
+                                                {{ slot.start_time.strftime('%H:%M') }}
+                                            </div>
+                                        {% endfor %}
+                                    </div>
+                                </div>
+                                {% endif %}
+                            {% endfor %}
                         </div>
-                        <input type="time" id="man-time" class="form-control form-control-sm" style="width: 100px;">
-                        <button class="btn btn-success btn-sm px-3" onclick="addManSlot()">Додати</button>
-                        <div class="vr mx-2"></div>
-                        <button class="btn btn-outline-danger btn-sm px-3" id="btn-bulk-del" onclick="bulkDelete()">Видалити обрані</button>
                     </div>
                 </div>
-            </div>
-
-            <div class="accordion shadow-sm" id="weeksAccordion">
-                {% for date_key, slots in calendar_data.items()|sort %}
-                    {% set date_obj = slots[0].date if slots else None %}
-                    {% if date_obj and date_obj.weekday() == 0 %}
-                    <div class="accordion-item" id="week-container-{{ loop.index }}">
-                        <h2 class="accordion-header">
-                            <button class="accordion-button collapsed fw-bold" type="button" data-bs-toggle="collapse" data-bs-target="#week{{ loop.index }}">
-                                Тиждень: {{ date_obj.strftime('%d.%m') }} — {{ (date_obj + relativedelta(days=4)).strftime('%d.%m') }}
-                            </button>
-                        </h2>
-                        <div id="week{{ loop.index }}" class="accordion-collapse collapse">
-                            <div class="accordion-body p-0">
-                                <div class="p-2 bg-light border-bottom d-flex justify-content-end">
-                                    <button class="btn btn-sm btn-link text-dark text-decoration-none fw-bold" onclick="selectAllInWeek('week{{ loop.index }}')">Виділити всі вільні за тиждень</button>
-                                </div>
-                                {% for day_offset in range(5) %}
-                                    {% set d_day_obj = date_obj + relativedelta(days=day_offset) %}
-                                    {% set d_day_key = d_day_obj.strftime('%Y-%m-%d') %}
-                                    {% set d_day_slots = calendar_data.get(d_day_key, []) %}
-                                    <div class="p-3 border-bottom d-flex align-items-center bg-white">
-                                        <div style="width: 120px;" class="fw-bold text-muted">{{ d_day_obj.strftime('%d.%m') }}, {{ days_short[d_day_obj.strftime('%A')] }}</div>
-                                        <div class="d-flex flex-wrap gap-2">
-                                            {% for slot in d_day_slots|sort(attribute='start_time') %}
-                                                {% set app = slot.appointments[0] if slot.appointments else None %}
-                                                <div class="badge border text-dark p-2 d-flex align-items-center gap-1 
-                                                    {% if app %}
-                                                        {% if app.status == 'підтверджено' %}slot-confirmed
-                                                        {% elif app.status == 'відхилено' %}slot-rejected
-                                                        {% else %}slot-waiting{% endif %}
-                                                    {% else %}bg-light{% endif %}">
-                                                    
-                                                    {% if not app %}
-                                                        <input type="checkbox" class="bulk-delete-check" value="{{ slot.id }}">
-                                                    {% endif %}
-                                                    
-                                                    {{ slot.start_time.strftime('%H:%M') }}
-                                                </div>
-                                            {% endfor %}
-                                        </div>
-                                    </div>
-                                {% endfor %}
-                            </div>
-                        </div>
-                    </div>
-                    {% endif %}
                 {% endfor %}
             </div>
         </div>
@@ -415,18 +415,6 @@ async function bulkDelete() {
         method: 'POST', 
         headers: {'Content-Type': 'application/json'}, 
         body: JSON.stringify({ids: ids}) 
-    });
-    window.location.reload();
-}
-
-async function addManSlot() {
-    const d = document.getElementById('man-date').value;
-    const t = document.getElementById('man-time').value;
-    if(!d || !t) return alert("Заповніть дату та час.");
-    await fetch('/admin/confirm_slots', { 
-        method: 'POST', 
-        headers: {'Content-Type': 'application/json'}, 
-        body: JSON.stringify({date: d, times: [t]}) 
     });
     window.location.reload();
 }

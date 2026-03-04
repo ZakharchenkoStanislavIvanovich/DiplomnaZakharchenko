@@ -89,19 +89,26 @@ def update_status(id):
     action = data.get('action')
     note = data.get('note', '')
 
+    # Логіка зміни статусу
     if action == 'confirm':
         appointment.status = 'підтверджено'
         template = 'email/confirmed.html'
         subject = "Заявку підтверджено"
     else:
         appointment.status = 'відхилено'
-        if appointment.slot:
-            appointment.slot.is_booked = False
         template = 'email/rejected.html'
         subject = "Відхилення запису"
+
+    # ГОЛОВНЕ ВИПРАВЛЕННЯ:
+    # Незалежно від того, підтверджуєш ти чи відхиляєш (чи змінюєш рішення),
+    # слот має бути ЗАБЛОКОВАНИМ (True) для нових клієнтів, 
+    # бо там уже висить ця заявка в базі.
+    if appointment.slot:
+        appointment.slot.is_booked = True
     
     db.session.commit()
 
+    # Відправка пошти
     try:
         msg = Message(subject,
                       sender=current_app.config.get('MAIL_USERNAME'),
@@ -194,14 +201,20 @@ def preview_slots():
 @login_required
 @admin_required
 def confirm_slots():
+    # Також додаємо перевірку для ручного додавання
     data = request.get_json()
     target_date = datetime.strptime(data.get('date'), '%Y-%m-%d').date()
     if target_date.weekday() >= 5:
         return jsonify({'status': 'error', 'message': 'Неможливо створити слоти на вихідні'}), 400
     for time_str in data.get('times', []):
         t = datetime.strptime(time_str, '%H:%M').time()
-        if not TimeSlot.query.filter_by(date=target_date, start_time=t).first():
+        existing = TimeSlot.query.filter_by(date=target_date, start_time=t).first()
+        if not existing:
             db.session.add(TimeSlot(date=target_date, start_time=t, is_booked=False))
+        else:
+            # Оновлюємо статус існуючого слота, якщо там є заявки
+            if existing.appointments:
+                existing.is_booked = True
     db.session.commit()
     return jsonify({'status': 'success'})
 
@@ -215,15 +228,25 @@ def bulk_generate_slots():
     period = int(data['period'])
     days_generated = 0
     current_date = start_date
+    
     while days_generated < period:
         if current_date.weekday() <= 4:
             for time_str in times:
                 t = datetime.strptime(time_str, '%H:%M').time()
                 existing = TimeSlot.query.filter_by(date=current_date, start_time=t).first()
+                
                 if not existing:
                     db.session.add(TimeSlot(date=current_date, start_time=t, is_booked=False))
+                else:
+                    # ВИПРАВЛЕННЯ: Якщо слот існує і в ньому є БУДЬ-ЯКА заявка
+                    # (очікує, підтверджена або відхилена), він МАЄ бути True.
+                    if existing.appointments:
+                        existing.is_booked = True
+                    # Якщо ми перегенеровуємо порожні слоти, вони залишаються False
+            
             days_generated += 1
         current_date += timedelta(days=1)
+        
     db.session.commit()
     return jsonify({'status': 'success'})
 
