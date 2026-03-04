@@ -113,14 +113,25 @@
       100% { box-shadow: 0 0 0 0 rgba(192, 57, 43, 0); }
     }
 
-    .notif-dropdown-custom {
-      width: 300px;
-      max-height: 400px;
-      overflow-y: auto;
-      border-radius: 12px;
-      box-shadow: 0 8px 24px rgba(0,0,0,0.2);
-      border: 1px solid #dee2e6;
+    .notif-dropdown-custom .dropdown-item {
+        white-space: normal !important;
+        padding-right: 45px !important;
     }
+
+        /* Додаткові відступи для заголовка, щоб не перекривати хрестик */
+    .header-notif-container {
+        padding-right: 40px !important; 
+        white-space: normal !important; /* Дозволяємо перенос тексту */
+        display: block !important;
+        position: relative;
+    }
+
+    /* Стиль для підпунктів, щоб вони виглядали компактніше */
+    .sub-item-list {
+        margin-top: 5px;
+        border-left: 2px solid #dee2e6;
+    }
+
   </style>
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@700;900&display=swap" rel="stylesheet">
 </head>
@@ -173,6 +184,9 @@
   </div>
 
   <script>
+    // 1. Стан для збереження відкритих списків зустрічей між оновленнями
+    let openSublists = new Set();
+
     function dismissNotif(event, notifId) {
       event.preventDefault();
       event.stopPropagation();
@@ -182,6 +196,18 @@
         localStorage.setItem('dismissed_notifs', JSON.stringify(dismissed));
       }
       checkNotifications();
+    }
+
+    // 2. Нова функція для перемикання списків (щоб не закривався весь дзвіночок)
+    window.toggleSublist = function(id) {
+        const el = document.getElementById(id);
+        if (el.classList.contains('d-none')) {
+            el.classList.remove('d-none');
+            openSublists.add(id);
+        } else {
+            el.classList.add('d-none');
+            openSublists.delete(id);
+        }
     }
 
     async function checkNotifications() {
@@ -201,14 +227,46 @@
           const hasUrgent = activeNotifs.some(n => n.type === 'urgent');
           hasUrgent ? btn.classList.add('urgent-pulse') : btn.classList.remove('urgent-pulse');
 
-          content.innerHTML = activeNotifs.map(n => `
-            <li class="mb-2 position-relative">
-              <a class="dropdown-item border rounded p-2 pe-4 ${n.type === 'urgent' ? 'bg-light' : ''}" href="{{ url_for('admin.dashboard') }}#tab-apps" style="white-space: normal;">
-                <small class="fw-bold d-block ${n.type === 'urgent' ? 'text-danger' : ''}">${n.text}</small>
-              </a>
-              <button type="button" class="btn-close position-absolute" style="top:10px; right:10px; scale:0.6;" onclick="dismissNotif(event, '${n.id}')"></button>
-            </li>
-          `).join('');
+          content.innerHTML = activeNotifs.map(n => {
+              // 1. Блок для зустрічей на сьогодні
+              if (n.type === 'today_header') {
+                  const subListId = `sublist-${n.id}`;
+                  const isExpanded = openSublists.has(subListId) ? '' : 'd-none';
+                  return `
+                      <li class="mb-2 position-relative">
+                          <div class="dropdown-item border rounded p-2 bg-light shadow-sm header-notif-container" style="cursor:pointer;" 
+                               onclick="event.stopPropagation(); toggleSublist('${subListId}')">
+                              <small class="fw-bold d-block text-center">${n.text}</small>
+                          </div>
+                          <ul id="${subListId}" class="list-unstyled ${isExpanded} mt-1 ps-3 pe-1 sub-item-list">
+                              ${n.sub_items.map(sub => `
+                                  <li class="mb-1">
+                                      <a class="dropdown-item border rounded p-2 small bg-white text-center" 
+                                         href="{{ url_for('admin.dashboard') }}?tab=calendar&slot=${sub.slot_id}&week=${sub.monday_key}" 
+                                         target="_self" onclick="event.stopPropagation();">
+                                          ${sub.text}
+                                      </a>
+                                  </li>
+                              `).join('')}
+                          </ul>
+                          <button type="button" class="btn-close position-absolute" style="top:10px; right:10px; scale:0.6;" 
+                                  onclick="event.stopPropagation(); dismissNotif(event, '${n.id}')"></button>
+                      </li>
+                  `;
+              }
+              // 2. Блок для нових/термінових заявок (виправлено перехід ?tab=apps)
+              return `
+                  <li class="mb-2 position-relative">
+                      <a class="dropdown-item border rounded p-2 pe-5 ${n.type === 'urgent' ? 'bg-light' : ''}" 
+                         href="{{ url_for('admin.dashboard') }}?tab=apps" target="_self" 
+                         onclick="event.stopPropagation();" style="white-space: normal;">
+                          <small class="fw-bold d-block ${n.type === 'urgent' ? 'text-danger' : ''}">${n.text}</small>
+                      </a>
+                      <button type="button" class="btn-close position-absolute" style="top:10px; right:10px; scale:0.6;" 
+                              onclick="event.stopPropagation(); dismissNotif(event, '${n.id}')"></button>
+                  </li>
+              `;
+          }).join('');
         } else {
           badge.classList.add('d-none');
           btn.classList.remove('urgent-pulse');
@@ -216,9 +274,10 @@
         }
       } catch (e) { console.error(e); }
     }
+
     document.addEventListener('DOMContentLoaded', () => {
       checkNotifications();
-      setInterval(checkNotifications, 60000);
+      setInterval(checkNotifications, 10000);
     });
   </script>
   {% endif %}

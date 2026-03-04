@@ -264,50 +264,80 @@ def delete_multiple_slots():
 
 # --- СПОВІЩЕННЯ ---
 
+# --- СПОВІЩЕННЯ (ВИПРАВЛЕНО) ---
+
 @bp.route('/get_notifications')
 @login_required
 @admin_required
 def get_notifications():
     try:
         notifications = []
-        now = datetime.utcnow()
+        # Використовуємо локальний час (Україна — це UTC+2 або UTC+3)
+        # Або просто datetime.now(), щоб збігалося з часом, який бачить нотаріус
+        now = datetime.now() 
+        today_date = now.date()
         urgent_flag = 0
 
+        # 1. ЗАЯВКИ В ОЧІКУВАННІ (Нові та Термінові)
         pending_apps = Appointment.query.filter_by(status='очікує').all()
-        
-        if pending_apps:
-            six_hours_ago = now - timedelta(hours=6)
-            stale_apps = [a for a in pending_apps if a.created_at <= six_hours_ago]
+        for a in pending_apps:
+            diff = now - a.updated_at
+            hours_passed = diff.total_seconds() / 3600
             
-            last_id = pending_apps[-1].id
-            
-            notifications.append({
-                'id': f'new_apps_{len(pending_apps)}_{last_id}',
-                'type': 'new',
-                'text': f"У вас {len(pending_apps)} нових заявок"
-            })
-
-            if stale_apps:
+            if hours_passed >= 6:
                 urgent_flag = 1
+                cycle = int(hours_passed // 6)
                 notifications.append({
-                    'id': f'stale_{len(stale_apps)}_{stale_apps[-1].id}',
+                    'id': f'stale_{a.id}_cycle_{cycle}',
                     'type': 'urgent',
-                    'text': f"{len(stale_apps)} заявок не розглянуто понад 6 годин!"
+                    'text': f"ТЕРМІНОВО: {a.client.name} чекає {int(hours_passed)} год! ({a.service.name})"
+                })
+            else:
+                notifications.append({
+                    'id': f'new_{a.id}',
+                    'type': 'new',
+                    'text': f"Нова заявка: {a.client.name} (на {a.slot.date.strftime('%d.%m')})"
                 })
 
-        recent_auto_archived = ArchivedAppointment.query.filter(
-            ArchivedAppointment.deletion_type == 'automatic',
-            ArchivedAppointment.deleted_at >= (now - timedelta(hours=12))
+        # 2. ЗУСТРІЧІ НА СЬОГОДНІ
+        now = datetime.now()
+        today_date = now.date()
+        today_str = today_date.strftime('%d.%m.%Y')
+        
+        all_active_apps = Appointment.query.join(TimeSlot).filter(
+            Appointment.status.in_(['підтверджено', 'очікує'])
         ).all()
 
-        if recent_auto_archived:
-            last_auto_id = recent_auto_archived[-1].id
+        today_apps = [a for a in all_active_apps if a.slot.date == today_date]
+        today_apps.sort(key=lambda x: x.slot.start_time)
+
+        if today_apps:
             notifications.append({
-                'id': f'auto_del_{len(recent_auto_archived)}_{last_auto_id}',
-                'type': 'urgent',
-                'text': f"{len(recent_auto_archived)} відхилених заявок перенесено в архів"
+                'id': f'today_group_{today_date.strftime("%Y%m%d")}',
+                'type': 'today_header',
+                'text': f"Сьогодні ({today_str}) заплановано зустрічей: {len(today_apps)}",
+                'sub_items': [
+                    {
+                        'slot_id': a.slot.id,
+                        'monday_key': (a.slot.date - relativedelta(days=a.slot.date.weekday())).strftime('%Y-%m-%d'),
+                        'text': f"{a.slot.start_time.strftime('%H:%M')} - {a.client.name}"
+                    } for a in today_apps
+                ]
             })
-            urgent_flag = 1
+
+        # 3. АВТОМАТИЧНО ВИДАЛЕНІ (за останні 12 годин)
+        twelve_hours_ago = now - timedelta(hours=12)
+        deleted = ArchivedAppointment.query.filter(
+            ArchivedAppointment.deletion_type == 'automatic',
+            ArchivedAppointment.deleted_at >= twelve_hours_ago
+        ).all()
+
+        if deleted:
+            notifications.append({
+                'id': f'auto_del_summary_{len(deleted)}',
+                'type': 'info',
+                'text': f"{len(deleted)} відхилених заявок видалено автоматично"
+            })
 
         return jsonify({
             'total': len(notifications),
