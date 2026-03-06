@@ -32,15 +32,14 @@
     .slot-rejected { background-color: #f8d7da !important; border: 2px solid #dc3545 !important; }
     .slot-free { background-color: #ffffff; }
 
-    /* 1. Реєстрація змінної для плавної анімації */
     @property --angle {
-    syntax: '<angle>';
-    initial-value: 0deg;
-    inherits: false;
+        syntax: '<angle>';
+        initial-value: 0deg;
+        inherits: false;
     }
 
     @keyframes rotate-gradient {
-    to { --angle: 360deg; }
+        to { --angle: 360deg; }
     }
 
     .slot-highlight {
@@ -48,38 +47,24 @@
         z-index: 10 !important;
         transform: scale(1.2) !important;
         transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) !important;
-        /* Важливо: не перебиваємо колір рамки (border-color), 
-        щоб залишився колір статусу кнопки */
     }
 
     .slot-highlight::before {
         content: "";
         position: absolute;
-        /* Встановлюємо відступ так, щоб промінь ліг прямо на існуючу рамку */
         inset: -1px; 
-        border-radius: 4px; /* Має збігатися з радіусом кнопки */
-        
-        background: conic-gradient(
-            from var(--angle),
-            transparent 75%,
-            #ffffff 90%,
-            #ffffff 100%
-        );
-        
+        border-radius: 4px;
+        background: conic-gradient(from var(--angle), transparent 75%, #ffffff 90%, #ffffff 100%);
         animation: rotate-gradient 2s linear infinite;
-        
-        /* Маскування, щоб залишити тільки тоненьку рухому смужку */
         mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
         mask-composite: exclude;
         -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
         -webkit-mask-composite: xor;
-        
-        padding: 3px; /* Товщина біжучого срібного променя */
+        padding: 3px;
         pointer-events: none;
         z-index: 1;
     }
 
-    /* Зовнішнє м'яке світіння (опціонально, додає об'єму сріблу) */
     .slot-highlight::after {
         content: "";
         position: absolute;
@@ -100,6 +85,33 @@
     @keyframes highlight { 0% { background-color: #fff3cd; } 100% { background-color: transparent; } }
 
     .actions-column { white-space: nowrap; width: 1%; }
+
+    .row-glow-focus {
+        position: relative;
+        outline: 3px solid var(--notary-olive) !important;
+        outline-offset: -3px;
+        z-index: 10;
+    }
+
+    .row-glow-focus::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+        background: conic-gradient(from var(--angle), transparent 70%, #C0C0C0 90%, #ffffff 100%);
+        animation: rotate-gradient 1.5s linear infinite;
+        padding: 4px; 
+        mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+        mask-composite: exclude;
+        -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+        -webkit-mask-composite: xor;
+        z-index: 11;
+    }
+
+    .table {
+        border-collapse: separate !important;
+        border-spacing: 0 4px !important;
+    }
 </style>
 
 {% set days_full = {'Monday': 'Понеділок', 'Tuesday': 'Вівторок', 'Wednesday': 'Середа', 'Thursday': 'Четвер', 'Friday': 'П’ятниця'} %}
@@ -132,7 +144,8 @@
                         <th>№ п/п</th>
                         <th>Клієнт</th>
                         <th>Послуга</th>
-                        <th>Дата / Час</th>
+                        <th>Дата / Час прийому</th>
+                        <th>Подано (коли)</th>
                         <th>Статус</th>
                         <th style="min-width: 250px;">Керування статусом</th>
                         <th>Дії</th>
@@ -141,10 +154,17 @@
                 <tbody>
                     {% for app in appointments %}
                     <tr id="row-{{ app.id }}">
-                        <td>{{ loop.index }}</td>
+                        <td>{{ appointments|length - loop.index0 }}</td>
                         <td><strong>{{ app.client.name }}</strong><br><small>{{ app.client.email }}</small></td>
                         <td>{{ app.service.name }}</td>
                         <td>{{ app.slot.date.strftime('%d.%m.%Y') }} | {{ app.slot.start_time.strftime('%H:%M') }}</td>
+                        <td class="small text-muted">
+                            {% if app.updated_at %}
+                                {{ app.updated_at.strftime('%d.%m.%Y') }}<br>{{ app.updated_at.strftime('%H:%M') }}
+                            {% else %}
+                                —
+                            {% endif %}
+                        </td>
                         <td>
                             <span class="badge {% if app.status == 'підтверджено' %}bg-success{% elif app.status == 'відхилено' %}bg-danger{% else %}bg-warning text-dark{% endif %}">
                                 {{ app.status }}
@@ -371,7 +391,18 @@
     </div>
 </div>
 
-<div class="modal fade" id="infoModal" tabindex="-1"><div class="modal-dialog"><div class="modal-content shadow"><div class="modal-header bg-olive text-white"><h5 class="modal-title">Деталі</h5><button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button></div><div class="modal-body" id="infoBody"></div><div class="modal-footer" id="infoFooter"></div></div></div></div>
+<div class="modal fade" id="infoModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content shadow">
+            <div class="modal-header bg-olive text-white">
+                <h5 class="modal-title">Деталі</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="infoBody"></div>
+            <div class="modal-footer" id="infoFooter"></div>
+        </div>
+    </div>
+</div>
 
 <div class="modal fade" id="serviceModal" tabindex="-1">
     <div class="modal-dialog">
@@ -398,23 +429,39 @@ function switchTab(targetId) {
     if (targetBtn) targetBtn.classList.add('active');
     const targetPane = document.getElementById(targetId);
     if (targetPane) targetPane.classList.add('show', 'active');
-    
-    // ДОДАЙТЕ ЦЕЙ РЯДОК, якщо його немає:
     window.location.hash = targetId; 
 }
+
 document.querySelectorAll('.nav-link[data-target]').forEach(tab => {
     tab.addEventListener('click', function(e) { e.preventDefault(); switchTab(this.getAttribute('data-target')); });
 });
-document.addEventListener("DOMContentLoaded", function() { let h = window.location.hash.substring(1); if (h) switchTab(h); });
+
+document.addEventListener("DOMContentLoaded", function() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const tab = urlParams.get('tab');
+    const appId = urlParams.get('app_id');
+    const slotId = urlParams.get('slot');
+    const weekKey = urlParams.get('week');
+
+    if (appId) {
+        goToApp(appId);
+        const cleanUrl = window.location.origin + window.location.pathname + "#tab-apps";
+        window.history.replaceState({}, '', cleanUrl);
+    } else if (tab === 'calendar' && slotId && weekKey) {
+        window.goToCalendarSlot(slotId, weekKey);
+    } else {
+        let h = window.location.hash.substring(1); 
+        if (h) switchTab(h);
+    }
+});
 
 function checkDay(input, errorId) {
     const d = new Date(input.value).getUTCDay();
-    const errorDiv = document.getElementById(errorId);
     if (d === 0 || d === 6) {
-        if (errorDiv) errorDiv.style.display = "block";
+        document.getElementById(errorId).style.display = "block";
         input.value = "";
     } else {
-        if (errorDiv) errorDiv.style.display = "none";
+        document.getElementById(errorId).style.display = "none";
     }
 }
 
@@ -434,19 +481,10 @@ async function loadPreview() {
     const data = await res.json();
     const grid = document.getElementById('slot-grid'); 
     grid.innerHTML = '';
-    
     data.slots.forEach(t => {
-        grid.innerHTML += `
-            <div class="p-2 border bg-white rounded shadow-sm small d-flex align-items-center gap-2">
-                <input type="checkbox" class="slot-check" value="${t}"> ${t}
-            </div>`;
+        grid.innerHTML += `<div class="p-2 border bg-white rounded shadow-sm small d-flex align-items-center gap-2"><input type="checkbox" class="slot-check" value="${t}"> ${t}</div>`;
     });
-    
     document.getElementById('preview-area').classList.remove('d-none');
-}
-
-function toggleAllPreview(check) {
-    document.querySelectorAll('.slot-check').forEach(c => c.checked = check);
 }
 
 async function saveSlots() {
@@ -454,8 +492,7 @@ async function saveSlots() {
     const startDate = document.getElementById('s-date').value;
     const period = parseInt(document.getElementById('s-period').value);
     if(!times.length) return alert("Оберіть часові слоти.");
-
-    const res = await fetch('/admin/bulk_generate_slots', { 
+    await fetch('/admin/bulk_generate_slots', { 
         method: 'POST', 
         headers: {'Content-Type': 'application/json'}, 
         body: JSON.stringify({start_date: startDate, times: times, period: period}) 
@@ -481,64 +518,52 @@ async function bulkDelete() {
     window.location.reload();
 }
 
-// Оновлена функція з додаванням Email та Послуги
 function openInfo(time, date, client, service, status, appId, email) {
     let b = `<div class="mb-3"><strong>Час:</strong> ${date} о ${time}</div>`;
     if (client) {
-        b += `
-        <div class="p-3 border rounded bg-light">
-            <p class="mb-1"><strong>Клієнт:</strong> ${client}</p>
-            <p class="mb-1"><strong>Email:</strong> ${email}</p>
-            <p class="mb-1"><strong>Послуга:</strong> ${service}</p>
-            <p class="mb-0"><strong>Статус:</strong> <span class="badge ${status === 'підтверджено' ? 'bg-success' : (status === 'відхилено' ? 'bg-danger' : 'bg-warning text-dark')}">${status}</span></p>
-        </div>`;
+        b += `<div class="p-3 border rounded bg-light"><p class="mb-1"><strong>Клієнт:</strong> ${client}</p><p class="mb-1"><strong>Email:</strong> ${email}</p><p class="mb-1"><strong>Послуга:</strong> ${service}</p><p class="mb-0"><strong>Статус:</strong> <span class="badge ${status === 'підтверджено' ? 'bg-success' : (status === 'відхилено' ? 'bg-danger' : 'bg-warning text-dark')}">${status}</span></p></div>`;
     } else {
         b += `<div class="alert alert-success py-2">Слот вільний.</div>`;
     }
     document.getElementById('infoBody').innerHTML = b;
-    document.getElementById('infoFooter').innerHTML = client ? 
-        `<button class="btn btn-dark-grey" onclick="goToApp('${appId}')">До списку заявок</button>` : 
-        `<button class="btn btn-secondary" data-bs-dismiss="modal">Закрити</button>`;
+    document.getElementById('infoFooter').innerHTML = client ? `<button class="btn btn-dark-grey" onclick="goToApp('${appId}')">До списку заявок</button>` : `<button class="btn btn-secondary" data-bs-dismiss="modal">Закрити</button>`;
     new bootstrap.Modal(document.getElementById('infoModal')).show();
 }
 
 window.goToCalendarSlot = function(slotId, mondayKey) {
-        switchTab('tab-calendar');
-        
-        // Очищаємо підсвітку з усіх слотів
-        document.querySelectorAll('.slot-card').forEach(el => el.classList.remove('slot-highlight'));
+    switchTab('tab-calendar');
+    document.querySelectorAll('.slot-card').forEach(el => el.classList.remove('slot-highlight'));
+    const weekContainer = document.getElementById(`cal-week-container-${mondayKey}`);
+    if (weekContainer) {
+        const collapseBtn = weekContainer.querySelector('.accordion-button');
+        if (collapseBtn && collapseBtn.classList.contains('collapsed')) collapseBtn.click();
+        setTimeout(() => {
+            const slotEl = document.getElementById(`slot-${slotId}`);
+            if (slotEl) {
+                slotEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                slotEl.classList.add('slot-highlight');
+                slotEl.addEventListener('click', () => slotEl.classList.remove('slot-highlight'), { once: true });
+            }
+        }, 600);
+    }
+};
 
-        const weekContainer = document.getElementById(`cal-week-container-${mondayKey}`);
-        if (weekContainer) {
-            const collapseBtn = weekContainer.querySelector('.accordion-button');
-            if (collapseBtn && collapseBtn.classList.contains('collapsed')) collapseBtn.click();
-
-            setTimeout(() => {
-                const slotEl = document.getElementById(`slot-${slotId}`);
-                if (slotEl) {
-                    slotEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                    
-                    // Додаємо наш новий магічний клас
-                    slotEl.classList.add('slot-highlight');
-                    
-                    // Функція для повного видалення ефектів
-                    const clearH = () => {
-                        slotEl.classList.remove('slot-highlight');
-                    };
-                    
-                    // Видаляємо при кліку на слот
-                    slotEl.addEventListener('click', clearH, { once: true });
-                    
-                    // Видаляємо при переході на будь-яку іншу вкладку
-                    document.querySelectorAll('.nav-link').forEach(link => {
-                        link.addEventListener('click', clearH, { once: true });
-                    });
-                }
-            }, 600);
+function goToApp(id) {
+    const modalEl = document.getElementById('infoModal');
+    if (modalEl) {
+        const modalInstance = bootstrap.Modal.getInstance(modalEl);
+        if (modalInstance) modalInstance.hide();
+    }
+    switchTab('tab-apps');
+    setTimeout(() => {
+        const row = document.getElementById(`row-${id}`);
+        if (row) {
+            row.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            row.classList.add('highlight-row');
+            setTimeout(() => row.classList.remove('highlight-row'), 3000);
         }
-    };
-
-function goToApp(id) { bootstrap.Modal.getInstance(document.getElementById('infoModal')).hide(); switchTab('tab-apps'); setTimeout(() => { const r = document.getElementById(`row-${id}`); if(r){r.scrollIntoView({behavior:'smooth', block:'center'}); r.classList.add('highlight-row');} }, 100); }
+    }, 450);
+}
 
 async function confirmDelete(id) { if (confirm("Архівувати обрану заявку?")) { await fetch(`/admin/delete_appointment/${id}`, {method:'POST'}); window.location.reload(); } }
 
@@ -562,30 +587,5 @@ document.getElementById('serviceForm').onsubmit = async (e) => {
     window.location.reload();
 };
 async function deleteService(id) { if(confirm("Видалити послугу?")) { await fetch(`/admin/services/delete/${id}`, {method:'POST'}); window.location.reload(); } }
-
-document.addEventListener("DOMContentLoaded", function() {
-    const urlParams = new URLSearchParams(window.location.search);
-    const tab = urlParams.get('tab');
-    const slotId = urlParams.get('slot');
-    const weekKey = urlParams.get('week');
-
-    if (tab === 'calendar' && slotId && weekKey) {
-        switchTab('tab-calendar');
-        setTimeout(() => {
-            window.goToCalendarSlot(slotId, weekKey);
-            const cleanUrl = window.location.protocol + "//" + window.location.host + window.location.pathname + "#tab-calendar";
-            window.history.replaceState({}, '', cleanUrl);
-        }, 800);
-    } else if (tab === 'apps') {
-        // Явний перехід на таб заявок, якщо прийшли за посиланням
-        switchTab('tab-apps');
-        const cleanUrl = window.location.protocol + "//" + window.location.host + window.location.pathname + "#tab-apps";
-        window.history.replaceState({}, '', cleanUrl);
-    } else {
-        let h = window.location.hash.substring(1); 
-        if (h) switchTab(h);
-    }
-});
-
 </script>
 {% endblock %}

@@ -89,7 +89,6 @@ def update_status(id):
     action = data.get('action')
     note = data.get('note', '')
 
-    # Логіка зміни статусу
     if action == 'confirm':
         appointment.status = 'підтверджено'
         template = 'email/confirmed.html'
@@ -99,16 +98,11 @@ def update_status(id):
         template = 'email/rejected.html'
         subject = "Відхилення запису"
 
-    # ГОЛОВНЕ ВИПРАВЛЕННЯ:
-    # Незалежно від того, підтверджуєш ти чи відхиляєш (чи змінюєш рішення),
-    # слот має бути ЗАБЛОКОВАНИМ (True) для нових клієнтів, 
-    # бо там уже висить ця заявка в базі.
     if appointment.slot:
         appointment.slot.is_booked = True
     
     db.session.commit()
 
-    # Відправка пошти
     try:
         msg = Message(subject,
                       sender=current_app.config.get('MAIL_USERNAME'),
@@ -201,7 +195,6 @@ def preview_slots():
 @login_required
 @admin_required
 def confirm_slots():
-    # Також додаємо перевірку для ручного додавання
     data = request.get_json()
     target_date = datetime.strptime(data.get('date'), '%Y-%m-%d').date()
     if target_date.weekday() >= 5:
@@ -212,7 +205,6 @@ def confirm_slots():
         if not existing:
             db.session.add(TimeSlot(date=target_date, start_time=t, is_booked=False))
         else:
-            # Оновлюємо статус існуючого слота, якщо там є заявки
             if existing.appointments:
                 existing.is_booked = True
     db.session.commit()
@@ -238,11 +230,8 @@ def bulk_generate_slots():
                 if not existing:
                     db.session.add(TimeSlot(date=current_date, start_time=t, is_booked=False))
                 else:
-                    # ВИПРАВЛЕННЯ: Якщо слот існує і в ньому є БУДЬ-ЯКА заявка
-                    # (очікує, підтверджена або відхилена), він МАЄ бути True.
                     if existing.appointments:
                         existing.is_booked = True
-                    # Якщо ми перегенеровуємо порожні слоти, вони залишаються False
             
             days_generated += 1
         current_date += timedelta(days=1)
@@ -262,89 +251,70 @@ def delete_multiple_slots():
     db.session.commit()
     return jsonify({'status': 'success', 'deleted_count': len(slots_to_delete)})
 
-# --- СПОВІЩЕННЯ ---
-
-# --- СПОВІЩЕННЯ (ВИПРАВЛЕНО) ---
-
 @bp.route('/get_notifications')
 @login_required
 @admin_required
 def get_notifications():
     try:
         notifications = []
-        # Використовуємо локальний час (Україна — це UTC+2 або UTC+3)
-        # Або просто datetime.now(), щоб збігалося з часом, який бачить нотаріус
-        now = datetime.now() 
-        today_date = now.date()
-        urgent_flag = 0
-
-        # 1. ЗАЯВКИ В ОЧІКУВАННІ (Нові та Термінові)
+        now = datetime.now()
+        
         pending_apps = Appointment.query.filter_by(status='очікує').all()
+        new_items = []
+        urgent_items = []
+
         for a in pending_apps:
             diff = now - a.updated_at
-            hours_passed = diff.total_seconds() / 3600
+            hours_passed = int(diff.total_seconds() // 3600)
             
+            base_text = f"{a.client.name} | {a.service.name} | {a.slot.date.strftime('%d.%m')}"
+            
+            item_data = {
+                'id': f"app_{a.id}",
+                'text': base_text,
+                'time': a.updated_at.strftime('%H:%M'),
+                'tab': 'apps'
+            }
+
             if hours_passed >= 6:
-                urgent_flag = 1
-                cycle = int(hours_passed // 6)
-                notifications.append({
-                    'id': f'stale_{a.id}_cycle_{cycle}',
-                    'type': 'urgent',
-                    'text': f"ТЕРМІНОВО: {a.client.name} чекає {int(hours_passed)} год! ({a.service.name})"
-                })
+                item_data['text'] = f"{base_text} (очікує {hours_passed} год.)"
+                urgent_items.append(item_data)
             else:
-                notifications.append({
-                    'id': f'new_{a.id}',
-                    'type': 'new',
-                    'text': f"Нова заявка: {a.client.name} (на {a.slot.date.strftime('%d.%m')})"
-                })
+                new_items.append(item_data)
 
-        # 2. ЗУСТРІЧІ НА СЬОГОДНІ
-        now = datetime.now()
-        today_date = now.date()
-        today_str = today_date.strftime('%d.%m.%Y')
-        
-        all_active_apps = Appointment.query.join(TimeSlot).filter(
-            Appointment.status.in_(['підтверджено', 'очікує'])
-        ).all()
+        if urgent_items:
+            notifications.append({'id': 'g_urgent', 'type': 'urgent', 'header': f"ТЕРМІНОВІ ({len(urgent_items)})", 'items': urgent_items})
+        if new_items:
+            notifications.append({'id': 'g_new', 'type': 'new', 'header': f"Нові заявки ({len(new_items)})", 'items': new_items})
 
-        today_apps = [a for a in all_active_apps if a.slot.date == today_date]
-        today_apps.sort(key=lambda x: x.slot.start_time)
-
+        all_active = Appointment.query.join(TimeSlot).filter(Appointment.status.in_(['підтверджено', 'очікує'])).all()
+        today_apps = [a for a in all_active if a.slot.date == now.date()]
         if today_apps:
             notifications.append({
-                'id': f'today_group_{today_date.strftime("%Y%m%d")}',
-                'type': 'today_header',
-                'text': f"Сьогодні ({today_str}) заплановано зустрічей: {len(today_apps)}",
-                'sub_items': [
-                    {
-                        'slot_id': a.slot.id,
-                        'monday_key': (a.slot.date - relativedelta(days=a.slot.date.weekday())).strftime('%Y-%m-%d'),
-                        'text': f"{a.slot.start_time.strftime('%H:%M')} - {a.client.name}"
-                    } for a in today_apps
-                ]
+                'id': 'g_today', 'type': 'today', 'header': f"План на сьогодні ({len(today_apps)})",
+                'items': [{
+                    'id': f"today_{a.id}",
+                    'text': f"{a.client.name} | {a.service.name} | {a.slot.start_time.strftime('%H:%M')}",
+                    'time': a.slot.start_time.strftime('%H:%M'),
+                    'slot_id': a.slot.id,
+                    'monday_key': (a.slot.date - timedelta(days=a.slot.date.weekday())).strftime('%Y-%m-%d'),
+                    'tab': 'calendar'
+                } for a in sorted(today_apps, key=lambda x: x.slot.start_time)]
             })
 
-        # 3. АВТОМАТИЧНО ВИДАЛЕНІ (за останні 12 годин)
         twelve_hours_ago = now - timedelta(hours=12)
-        deleted = ArchivedAppointment.query.filter(
-            ArchivedAppointment.deletion_type == 'automatic',
-            ArchivedAppointment.deleted_at >= twelve_hours_ago
-        ).all()
-
+        deleted = ArchivedAppointment.query.filter(ArchivedAppointment.deletion_type == 'automatic', ArchivedAppointment.deleted_at >= twelve_hours_ago).all()
         if deleted:
             notifications.append({
-                'id': f'auto_del_summary_{len(deleted)}',
-                'type': 'info',
-                'text': f"{len(deleted)} відхилених заявок видалено автоматично"
+                'id': 'g_del', 'type': 'info', 'header': f"Авто-очищення ({len(deleted)})",
+                'items': [{
+                    'id': f"del_{d.id}",
+                    'text': f"{d.client_name} | {d.service_name} | {d.slot_info}",
+                    'time': d.deleted_at.strftime('%H:%M'),
+                    'tab': 'archive'
+                } for d in deleted]
             })
 
-        return jsonify({
-            'total': len(notifications),
-            'urgent': urgent_flag,
-            'details': notifications
-        })
-
+        return jsonify({'details': notifications})
     except Exception as e:
-        print(f"Помилка сповіщень: {e}")
         return jsonify({'error': str(e)}), 500

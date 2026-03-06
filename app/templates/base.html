@@ -7,131 +7,182 @@
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
   <style>
-    /* ТВОЇ ОРИГІНАЛЬНІ СТИЛІ */
-    .navbar {
-      background-color: #556b2f !important;
-    }
+      .navbar {
+        background-color: #556b2f !important;
+      }
 
-    .navbar-brand {
-      font-family: 'Poppins', sans-serif;
-      font-weight: 900;
-      text-transform: uppercase;
-      font-size: 2rem;
-      letter-spacing: 2px;
-      color: white !important;
-      text-decoration: none;
-      transition: opacity 0.3s;
-    }
+      .navbar-brand {
+        font-family: 'Poppins', sans-serif;
+        font-weight: 900;
+        text-transform: uppercase;
+        font-size: 2rem;
+        letter-spacing: 2px;
+        color: white !important;
+        text-decoration: none;
+        transition: opacity 0.3s;
+      }
 
-    .navbar-brand:hover {
-      opacity: 0.8;
-      color: white !important;
-    }
+      .navbar-brand:hover {
+        opacity: 0.8;
+        color: white !important;
+      }
 
-    .nav-btn {
-      background-color: #343a40;
-      color: white !important;
-      padding: 8px 20px;
-      margin: 4px 6px;
-      border-radius: 10px;
-      text-decoration: none;
-      font-weight: 500;
-      transition: background 0.3s, transform 0.2s;
-      display: inline-block;
-    }
+      .nav-btn {
+        background-color: #343a40;
+        color: white !important;
+        padding: 8px 20px;
+        margin: 4px 6px;
+        border-radius: 10px;
+        text-decoration: none;
+        font-weight: 500;
+        transition: background 0.3s, transform 0.2s;
+        display: inline-block;
+      }
 
-    .nav-btn:hover {
-      background-color: #23272b;
-      transform: scale(1.05);
-    }
+      .nav-btn:hover {
+        background-color: #23272b;
+        transform: scale(1.05);
+      }
 
-    .nav-btn-admin {
-      background-color: #d4af37 !important;
-      color: #1a1a1a !important;
-      font-weight: bold;
-    }
+      .btn, .btn-primary {
+        background-color: #343a40 !important;
+        border-color: #343a40 !important;
+        color: white !important;
+        border-radius: 10px;
+        transition: background 0.3s, transform 0.2s;
+      }
 
-    .btn,
-    .btn-primary {
-      background-color: #343a40 !important;
-      border-color: #343a40 !important;
-      color: white !important;
-      border-radius: 10px;
-      transition: background 0.3s, transform 0.2s;
-    }
+      /* ФАБ та Дропдаун */
+      #notification-fab {
+        position: fixed;
+        bottom: 30px;
+        right: 30px;
+        z-index: 9999;
+      }
 
-    .btn:hover,
-    .btn-primary:hover {
-      background-color: #23272b !important;
-      border-color: #23272b !important;
-      transform: scale(1.03);
-    }
+      .fab-btn-circle {
+        width: 60px;
+        height: 60px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+        background-color: #343a40;
+        color: white;
+        border: none;
+        transition: all 0.3s;
+      }
 
-    /* ІЗОЛЬОВАНІ СТИЛІ СПОВІЩЕНЬ (ТІЛЬКИ ДЛЯ FAB) */
-    #notification-fab {
-      position: fixed;
-      bottom: 30px;
-      right: 30px;
-      z-index: 9999;
-    }
+      .notif-badge-custom {
+        position: absolute;
+        top: 0;
+        right: 0;
+        transform: translate(20%, -20%);
+        border-radius: 50%;
+        padding: 4px 8px;
+        font-size: 11px;
+        border: 2px solid white;
+        background-color: #dc3545;
+        color: white;
+      }
 
-    .fab-btn-circle {
-      width: 60px;
-      height: 60px;
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      box-shadow: 0 4px 15px rgba(0,0,0,0.3);
-      background-color: #343a40;
-      color: white;
-      border: none;
-      transition: all 0.3s;
-    }
+      .urgent-pulse {
+        animation: pulse-red-notif 2s infinite;
+        background-color: #c0392b !important;
+      }
 
-    .notif-badge-custom {
-      position: absolute;
-      top: 0;
-      right: 0;
-      transform: translate(20%, -20%);
-      border-radius: 50%;
-      padding: 4px 8px;
-      font-size: 11px;
-      border: 2px solid white;
-      background-color: #dc3545;
-      color: white;
-    }
+      @keyframes pulse-red-notif {
+        0% { box-shadow: 0 0 0 0 rgba(192, 57, 43, 0.7); }
+        70% { box-shadow: 0 0 0 15px rgba(192, 57, 43, 0); }
+        100% { box-shadow: 0 0 0 0 rgba(192, 57, 43, 0); }
+      }
 
-    .urgent-pulse {
-      animation: pulse-red-notif 2s infinite;
-      background-color: #c0392b !important;
-    }
+      /* ВІКНО ПОВІДОМЛЕНЬ */
+      .notif-dropdown-custom {
+          width: 450px;
+          max-height: 480px;
+          overflow-y: auto;
+          right: 0;
+          left: auto !important;
+          padding: 15px !important;
+          border-radius: 12px;
+          box-shadow: -5px 5px 20px rgba(0,0,0,0.2) !important;
+      }
 
-    @keyframes pulse-red-notif {
-      0% { box-shadow: 0 0 0 0 rgba(192, 57, 43, 0.7); }
-      70% { box-shadow: 0 0 0 15px rgba(192, 57, 43, 0); }
-      100% { box-shadow: 0 0 0 0 rgba(192, 57, 43, 0); }
-    }
+      /* Заголовки груп (Акордеони) */
+      .header-notif-container {
+          cursor: pointer;
+          font-size: 0.9rem;
+          transition: background 0.2s;
+          padding: 10px !important;
+          white-space: normal !important;
+          display: flex !important;
+          justify-content: space-between;
+          align-items: center;
+          position: relative;
+          border-radius: 8px;
+      }
 
-    .notif-dropdown-custom .dropdown-item {
-        white-space: normal !important;
-        padding-right: 45px !important;
-    }
+      .header-notif-container:hover {
+          background-color: #e2e6ea !important;
+      }
 
-        /* Додаткові відступи для заголовка, щоб не перекривати хрестик */
-    .header-notif-container {
-        padding-right: 40px !important; 
-        white-space: normal !important; /* Дозволяємо перенос тексту */
-        display: block !important;
-        position: relative;
-    }
+      /* Контейнер конкретної заявки */
+      .sub-item-container {
+          position: relative;
+          margin-bottom: 6px;
+      }
 
-    /* Стиль для підпунктів, щоб вони виглядали компактніше */
-    .sub-item-list {
-        margin-top: 5px;
-        border-left: 2px solid #dee2e6;
-    }
+      .sub-item-link {
+          display: block;
+          padding: 10px 40px 10px 12px; /* Відступ справа для хрестика */
+          background: #f8f9fa;
+          border: 1px solid #eee;
+          border-radius: 8px;
+          text-decoration: none;
+          color: #333;
+          font-size: 0.82rem;
+          transition: all 0.2s;
+          white-space: normal;
+      }
 
+      .sub-item-link:hover {
+          background: #e9ecef;
+          color: #000;
+          border-color: #556b2f;
+      }
+
+      /* Хрестик для видалення конкретної заявки */
+      .btn-dismiss-single {
+          position: absolute;
+          right: 10px;
+          top: 50%;
+          transform: translateY(-50%);
+          background: none;
+          border: none;
+          color: #ccc;
+          font-size: 14px;
+          z-index: 10;
+          padding: 5px;
+          transition: color 0.2s;
+      }
+
+      .btn-dismiss-single:hover {
+          color: #dc3545;
+      }
+
+      .notif-time {
+          font-size: 10px;
+          color: #999;
+          float: right;
+          margin-left: 10px;
+      }
+
+      .sub-item-list {
+          margin-top: 5px;
+          padding-left: 10px;
+      }
   </style>
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@700;900&display=swap" rel="stylesheet">
 </head>
@@ -184,7 +235,6 @@
   </div>
 
   <script>
-    // 1. Стан для збереження відкритих списків зустрічей між оновленнями
     let openSublists = new Set();
 
     function dismissNotif(event, notifId) {
@@ -198,7 +248,6 @@
       checkNotifications();
     }
 
-    // 2. Нова функція для перемикання списків (щоб не закривався весь дзвіночок)
     window.toggleSublist = function(id) {
         const el = document.getElementById(id);
         if (el.classList.contains('d-none')) {
@@ -227,43 +276,39 @@
           const hasUrgent = activeNotifs.some(n => n.type === 'urgent');
           hasUrgent ? btn.classList.add('urgent-pulse') : btn.classList.remove('urgent-pulse');
 
-          content.innerHTML = activeNotifs.map(n => {
-              // 1. Блок для зустрічей на сьогодні
-              if (n.type === 'today_header') {
-                  const subListId = `sublist-${n.id}`;
-                  const isExpanded = openSublists.has(subListId) ? '' : 'd-none';
-                  return `
-                      <li class="mb-2 position-relative">
-                          <div class="dropdown-item border rounded p-2 bg-light shadow-sm header-notif-container" style="cursor:pointer;" 
-                               onclick="event.stopPropagation(); toggleSublist('${subListId}')">
-                              <small class="fw-bold d-block text-center">${n.text}</small>
-                          </div>
-                          <ul id="${subListId}" class="list-unstyled ${isExpanded} mt-1 ps-3 pe-1 sub-item-list">
-                              ${n.sub_items.map(sub => `
-                                  <li class="mb-1">
-                                      <a class="dropdown-item border rounded p-2 small bg-white text-center" 
-                                         href="{{ url_for('admin.dashboard') }}?tab=calendar&slot=${sub.slot_id}&week=${sub.monday_key}" 
-                                         target="_self" onclick="event.stopPropagation();">
-                                          ${sub.text}
-                                      </a>
-                                  </li>
-                              `).join('')}
-                          </ul>
-                          <button type="button" class="btn-close position-absolute" style="top:10px; right:10px; scale:0.6;" 
-                                  onclick="event.stopPropagation(); dismissNotif(event, '${n.id}')"></button>
-                      </li>
-                  `;
-              }
-              // 2. Блок для нових/термінових заявок (виправлено перехід ?tab=apps)
+          content.innerHTML = activeNotifs.map(group => {
+              const subListId = `list-${group.id}`;
+              const isExpanded = openSublists.has(subListId) ? '' : 'd-none';
+              
               return `
-                  <li class="mb-2 position-relative">
-                      <a class="dropdown-item border rounded p-2 pe-5 ${n.type === 'urgent' ? 'bg-light' : ''}" 
-                         href="{{ url_for('admin.dashboard') }}?tab=apps" target="_self" 
-                         onclick="event.stopPropagation();" style="white-space: normal;">
-                          <small class="fw-bold d-block ${n.type === 'urgent' ? 'text-danger' : ''}">${n.text}</small>
-                      </a>
-                      <button type="button" class="btn-close position-absolute" style="top:10px; right:10px; scale:0.6;" 
-                              onclick="event.stopPropagation(); dismissNotif(event, '${n.id}')"></button>
+                  <li class="mb-3 border-bottom pb-2">
+                      <div class="fw-bold p-2 bg-light rounded shadow-sm d-flex justify-content-between align-items-center header-notif-container" 
+                          onclick="event.stopPropagation(); toggleSublist('${subListId}')">
+                          <span class="${group.type === 'urgent' ? 'text-danger' : ''}">${group.header}</span>
+                          <i class="fas fa-chevron-down small text-muted"></i>
+                      </div>
+                      
+                      <div id="${subListId}" class="${isExpanded} mt-2 ps-1 pe-1">
+                          ${group.items.map(item => {
+                              let url = "#";
+                              if(item.tab === 'apps') url = "{{ url_for('admin.dashboard') }}?tab=apps";
+                              if(item.tab === 'archive') url = "{{ url_for('admin.archive') }}";
+                              if(item.tab === 'calendar') url = `{{ url_for('admin.dashboard') }}?tab=calendar&slot=${item.slot_id}&week=${item.monday_key}`;
+                              
+                              return `
+                                  <div class="sub-item-container">
+                                      <a href="${url}" class="sub-item-link" onclick="event.stopPropagation();">
+                                          <span class="notif-time">${item.time}</span>
+                                          ${item.text}
+                                      </a>
+                                      <button type="button" class="btn-dismiss-single" 
+                                              onclick="dismissNotif(event, '${item.id}')" title="Приховати">
+                                          <i class="fas fa-times"></i>
+                                      </button>
+                                  </div>
+                              `;
+                          }).join('')}
+                      </div>
                   </li>
               `;
           }).join('');

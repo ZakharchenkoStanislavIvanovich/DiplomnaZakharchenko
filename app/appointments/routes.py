@@ -23,7 +23,7 @@ def book():
 
         slot = TimeSlot.query.get(form.time_id.data)
         if not slot or slot.is_booked:
-            flash("❌ Обраний час недоступний або вже заброньований.", "danger")
+            flash("Обраний час недоступний або вже заброньований.", "danger")
             return redirect(url_for("appointments.book"))
 
         appointment = Appointment(
@@ -48,7 +48,7 @@ def book():
         return redirect(url_for("appointments.success"))
 
     if request.method == "POST" and not form.validate_on_submit():
-        flash("❌ Перевірте введені дані.", "danger")
+        flash("Перевірте введені дані.", "danger")
         print("DEBUG form errors:", form.errors)
 
     return render_template("appointments/book.html", form=form)
