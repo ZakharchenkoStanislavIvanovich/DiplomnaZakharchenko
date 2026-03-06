@@ -145,7 +145,7 @@
                         <th>Клієнт</th>
                         <th>Послуга</th>
                         <th>Дата / Час прийому</th>
-                        <th>Подано (коли)</th>
+                        <th>Подано</th>
                         <th>Статус</th>
                         <th style="min-width: 250px;">Керування статусом</th>
                         <th>Дії</th>
@@ -158,7 +158,7 @@
                         <td><strong>{{ app.client.name }}</strong><br><small>{{ app.client.email }}</small></td>
                         <td>{{ app.service.name }}</td>
                         <td>{{ app.slot.date.strftime('%d.%m.%Y') }} | {{ app.slot.start_time.strftime('%H:%M') }}</td>
-                        <td class="small text-muted">
+                        <td class="small text-dark">
                             {% if app.updated_at %}
                                 {{ app.updated_at.strftime('%d.%m.%Y') }}<br>{{ app.updated_at.strftime('%H:%M') }}
                             {% else %}
@@ -445,11 +445,17 @@ document.addEventListener("DOMContentLoaded", function() {
 
     if (appId) {
         goToApp(appId);
+        // Очищуємо URL, щоб при наступних діях не було повторних переходів
         const cleanUrl = window.location.origin + window.location.pathname + "#tab-apps";
         window.history.replaceState({}, '', cleanUrl);
-    } else if (tab === 'calendar' && slotId && weekKey) {
+    } 
+    else if (tab === 'calendar' && slotId && weekKey) {
         window.goToCalendarSlot(slotId, weekKey);
-    } else {
+        // ВАЖЛИВО: Очищуємо параметри календаря з URL після переходу
+        const cleanUrl = window.location.origin + window.location.pathname + "#tab-calendar";
+        window.history.replaceState({}, '', cleanUrl);
+    } 
+    else {
         let h = window.location.hash.substring(1); 
         if (h) switchTab(h);
     }

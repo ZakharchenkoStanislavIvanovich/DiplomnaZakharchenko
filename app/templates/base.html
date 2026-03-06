@@ -238,14 +238,17 @@
     let openSublists = new Set();
 
     function dismissNotif(event, notifId) {
-      event.preventDefault();
-      event.stopPropagation();
-      let dismissed = JSON.parse(localStorage.getItem('dismissed_notifs') || '[]');
-      if (!dismissed.includes(notifId)) {
-        dismissed.push(notifId);
-        localStorage.setItem('dismissed_notifs', JSON.stringify(dismissed));
-      }
-      checkNotifications();
+        event.preventDefault();
+        event.stopPropagation();
+
+        let dismissed = JSON.parse(localStorage.getItem('dismissed_notifs') || '[]');
+        
+        if (!dismissed.includes(notifId)) {
+            dismissed.push(notifId);
+            localStorage.setItem('dismissed_notifs', JSON.stringify(dismissed));
+        }
+
+        checkNotifications();
     }
 
     window.toggleSublist = function(id) {
@@ -263,28 +266,44 @@
       try {
         const response = await fetch("{{ url_for('admin.get_notifications') }}");
         const data = await response.json();
+        
         const dismissed = JSON.parse(localStorage.getItem('dismissed_notifs') || '[]');
-        const activeNotifs = data.details.filter(n => !dismissed.includes(n.id));
+        
+        const activeNotifs = data.details.map(group => {
+            return {
+                ...group,
+                items: group.items.filter(item => !dismissed.includes(item.id))
+            };
+        }).filter(group => group.items.length > 0);
+
+        const totalCount = activeNotifs.reduce((acc, group) => acc + group.items.length, 0);
         
         const badge = document.getElementById('notif-badge');
         const btn = document.getElementById('notifBtn');
         const content = document.getElementById('notif-content');
         
-        if (activeNotifs.length > 0) {
-          badge.innerText = activeNotifs.length;
+      if (totalCount > 0) {
+          badge.innerText = totalCount;
           badge.classList.remove('d-none');
-          const hasUrgent = activeNotifs.some(n => n.type === 'urgent');
+          
+          const hasUrgent = activeNotifs.some(group => group.type === 'urgent');
           hasUrgent ? btn.classList.add('urgent-pulse') : btn.classList.remove('urgent-pulse');
 
           content.innerHTML = activeNotifs.map(group => {
               const subListId = `list-${group.id}`;
               const isExpanded = openSublists.has(subListId) ? '' : 'd-none';
+
+              const cleanHeader = group.header.split(' (')[0];
               
+              const currentGroupCount = group.items.length;
+
               return `
                   <li class="mb-3 border-bottom pb-2">
                       <div class="fw-bold p-2 bg-light rounded shadow-sm d-flex justify-content-between align-items-center header-notif-container" 
                           onclick="event.stopPropagation(); toggleSublist('${subListId}')">
-                          <span class="${group.type === 'urgent' ? 'text-danger' : ''}">${group.header}</span>
+                          <span class="${group.type === 'urgent' ? 'text-danger' : ''}">
+                              ${cleanHeader} (${currentGroupCount})
+                          </span>
                           <i class="fas fa-chevron-down small text-muted"></i>
                       </div>
                       
