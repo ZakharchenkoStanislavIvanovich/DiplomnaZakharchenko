@@ -32,7 +32,7 @@ class Appointment(db.Model):
     service_id = db.Column(db.Integer, db.ForeignKey('service.id'), nullable=False)
     slot_id = db.Column(db.Integer, db.ForeignKey('time_slot.id'), nullable=False)
     status = db.Column(db.String(20), default='очікує') 
-    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.now, onupdate=datetime.now)
 
     client = db.relationship("Client", backref="appointments")
     service = db.relationship("Service", backref="appointments")
@@ -47,4 +47,4 @@ class ArchivedAppointment(db.Model):
     slot_info = db.Column(db.String(100))
     status = db.Column(db.String(20))
     deletion_type = db.Column(db.String(20))
-    deleted_at = db.Column(db.DateTime, default=datetime.utcnow)
+    deleted_at = db.Column(db.DateTime, default=datetime.now)

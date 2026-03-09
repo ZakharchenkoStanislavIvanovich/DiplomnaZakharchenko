@@ -6,7 +6,8 @@
         --notary-grey: #343a40;
     }
 
-    .bg-olive, .table-olive thead, .modal-header.bg-olive {
+    /* ЗАГАЛЬНІ КОЛЬОРИ ТА ЕЛЕМЕНТИ */
+    .bg-olive, .modal-header.bg-olive {
         background-color: var(--notary-olive) !important;
         color: white !important;
     }
@@ -17,21 +18,94 @@
         color: white !important;
     }
 
-    .table-custom-header thead th {
-        background-color: var(--notary-grey) !important;
-        color: white !important;
-        border-color: var(--notary-grey) !important;
+    /* Фіксація мінімальної висоти контенту, щоб футер не стрибав */
+    .tab-content {
+        min-height: 400px;
+        scroll-margin-top: 100px;
+    }
+
+    /* Прибираємо синю рамку фокусу при кліку на кнопки вкладок */
+    .nav-pills .nav-link:focus {
+        outline: none !important;
+        box-shadow: none !important;
     }
 
     .nav-pills .nav-link { color: var(--notary-grey); font-weight: 500; }
     .btn-dark-grey:hover { background-color: #23272b !important; }
 
-    .slot-card { min-width: 100px; cursor: pointer; border: 1px solid #dee2e6; transition: 0.2s; border-radius: 4px; }
+    /* УНІФІКОВАНІ СТИЛІ ТАБЛИЦЬ */
+    .table {
+        border-collapse: separate !important;
+        border-spacing: 0 4px !important;
+        border: none !important;
+    }
+
+    .table thead th, 
+    .table-custom-header thead th {
+        background-color: var(--notary-grey) !important;
+        color: white !important;
+        border: none !important;
+        padding: 12px;
+        vertical-align: middle;
+    }
+
+    .table tbody tr td {
+        border-top: 1px solid #dee2e6 !important;
+        border-bottom: 1px solid #dee2e6 !important;
+        border-left: none !important;
+        border-right: none !important;
+        background-color: #fff;
+    }
+
+    .table tbody tr td:first-child {
+        border-left: 1px solid #dee2e6 !important;
+        border-top-left-radius: 4px;
+        border-bottom-left-radius: 4px;
+    }
+
+    .table tbody tr td:last-child {
+        border-right: 1px solid #dee2e6 !important;
+        border-top-right-radius: 4px;
+        border-bottom-right-radius: 4px;
+    }
+
+    .table-responsive, .shadow-sm {
+        border: none !important;
+    }
+
+    /* СТИЛІ СЛОТІВ ТА КАЛЕНДАРЯ */
+    .slot-card { 
+        min-width: 100px; 
+        cursor: pointer; 
+        border: 1px solid #dee2e6; 
+        transition: 0.2s; 
+        border-radius: 4px;
+        font-weight: normal !important; /* ЧИСЛА НЕ ЖИРНІ В РОЗКЛАДІ */
+    }
+
+    /* Стилі для слотів у вкладці "Налаштування графіку" */
+    #tab-slots .badge {
+        font-weight: bold !important; /* ВСІ ЧИСЛА ЖИРНІ В НАЛАШТУВАННЯХ */
+        font-size: 0.9rem;
+        padding: 8px 12px;
+    }
+
+    /* Статуси кольорів */
     .slot-waiting { background-color: #fff3cd !important; border: 2px solid #ffc107 !important; }
     .slot-confirmed { background-color: #d1e7dd !important; border: 2px solid #198754 !important; }
     .slot-rejected { background-color: #f8d7da !important; border: 2px solid #dc3545 !important; }
     .slot-free { background-color: #ffffff; }
+    
+    /* Прострочені вільні слоти (Фіолетові) */
+    .slot-expired { 
+        background-color: #e2d5f3 !important;
+        border: 2px solid #6f42c1 !important;
+        color: #000000 !important;
+        opacity: 0.8;
+        font-weight: inherit !important; /* Успадковує вагу від батьківського контейнера (normal в розкладі, bold в налаштуваннях) */
+    }
 
+    /* ГРАФІЧНІ ЕФЕКТИ ТА АНІМАЦІЯ */
     @property --angle {
         syntax: '<angle>';
         initial-value: 0deg;
@@ -77,6 +151,7 @@
         pointer-events: none;
     }
 
+    /* АКОРДЕОНИ ТА ІНШЕ */
     .accordion-item { border: 1px solid #dee2e6; margin-bottom: 1rem; border-radius: 8px !important; overflow: hidden; }
     .accordion-button:not(.collapsed) { background-color: #f8f9fa; color: var(--notary-olive); box-shadow: none; }
     .accordion-button { font-weight: bold; color: var(--notary-grey); }
@@ -106,11 +181,6 @@
         -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
         -webkit-mask-composite: xor;
         z-index: 11;
-    }
-
-    .table {
-        border-collapse: separate !important;
-        border-spacing: 0 4px !important;
     }
 </style>
 
@@ -199,8 +269,8 @@
                 <button class="btn btn-dark-grey" onclick="openServiceModal()">+ Додати послугу</button>
             </div>
             <div class="table-responsive">
-                <table class="table align-middle border">
-                    <thead class="bg-olive">
+                <table class="table align-middle table-custom-header">
+                    <thead>
                         <tr>
                             <th style="width: 50px;">№</th>
                             <th style="width: 200px;">Назва</th>
@@ -267,13 +337,22 @@
                                     <div class="d-flex flex-wrap gap-2">
                                         {% for slot in d_slots|sort(attribute='start_time') %}
                                             {% set active_app = slot.appointments[0] if slot.appointments else None %}
+                                            
+                                            {# ПЕРЕВІРКА ЧАСУ ДЛЯ ФІОЛЕТОВОГО КОЛЬОРУ #}
+                                            {% set slot_dt_str = slot.date.strftime('%Y-%m-%d') ~ ' ' ~ slot.start_time.strftime('%H:%M') %}
+                                            {% set is_expired = not active_app and slot_dt_str < now.strftime('%Y-%m-%d %H:%M') %}
+
                                             <div id="slot-{{ slot.id }}" class="p-2 rounded text-center slot-card 
                                                 {% if active_app %}
                                                     {% if active_app.status == 'підтверджено' %}slot-confirmed
                                                     {% elif active_app.status == 'відхилено' %}slot-rejected
                                                     {% else %}slot-waiting{% endif %}
-                                                {% else %}slot-free{% endif %}"
-                                                 onclick="openInfo(`{{ slot.start_time.strftime('%H:%M') }}`, `{{ d_curr_obj.strftime('%d.%m.%Y') }}`, `{{ active_app.client.name if active_app else '' }}`, `{{ active_app.service.name if active_app else '' }}`, `{{ active_app.status if active_app else '' }}`, `{{ active_app.id if active_app else '' }}`, `{{ active_app.client.email if active_app else '' }}`)">
+                                                {% elif is_expired %}
+                                                    slot-expired
+                                                {% else %}
+                                                    slot-free
+                                                {% endif %}"
+                                                onclick="openInfo(`{{ slot.start_time.strftime('%H:%M') }}`, `{{ d_curr_obj.strftime('%d.%m.%Y') }}`, `{{ active_app.client.name if active_app else '' }}`, `{{ active_app.service.name if active_app else '' }}`, `{{ active_app.status if active_app else '' }}`, `{{ active_app.id if active_app else '' }}`, `{{ active_app.client.email if active_app else '' }}`, {{ 'true' if is_expired else 'false' }})">
                                                 {{ slot.start_time.strftime('%H:%M') }}
                                             </div>
                                         {% endfor %}
@@ -366,12 +445,21 @@
                                     <div class="d-flex flex-wrap gap-2">
                                         {% for slot in d_day_slots|sort(attribute='start_time') %}
                                             {% set app = slot.appointments[0] if slot.appointments else None %}
+                                            
+                                            {# ПЕРЕВІРКА ЧАСУ #}
+                                            {% set slot_dt_check = slot.date.strftime('%Y-%m-%d') ~ ' ' ~ slot.start_time.strftime('%H:%M') %}
+                                            {% set is_expired_manage = not app and slot_dt_check < now.strftime('%Y-%m-%d %H:%M') %}
+
                                             <div class="badge border text-dark p-2 d-flex align-items-center gap-1 
                                                 {% if app %}
                                                     {% if app.status == 'підтверджено' %}slot-confirmed
                                                     {% elif app.status == 'відхилено' %}slot-rejected
                                                     {% else %}slot-waiting{% endif %}
-                                                {% else %}bg-light{% endif %}">
+                                                {% elif is_expired_manage %}
+                                                    slot-expired
+                                                {% else %}
+                                                    bg-light
+                                                {% endif %}">
                                                 {% if not app %}
                                                     <input type="checkbox" class="bulk-delete-check" value="{{ slot.id }}">
                                                 {% endif %}
@@ -422,38 +510,50 @@
 </div>
 
 <script>
+// 1. Основна функція перемикання вкладок
 function switchTab(targetId) {
+    // Прибираємо активні класи з усіх кнопок та панелей
     document.querySelectorAll('.nav-link').forEach(el => el.classList.remove('active'));
     document.querySelectorAll('.tab-pane').forEach(el => el.classList.remove('show', 'active'));
-    const targetBtn = document.querySelector(`[data-target="${targetId}"]`);
+    
+    // Активуємо потрібну кнопку (шукаємо і за id, і за data-target)
+    const targetBtn = document.querySelector(`[data-target="${targetId}"], #${targetId.replace('tab-', '')}-tab`);
     if (targetBtn) targetBtn.classList.add('active');
+    
+    // Активуємо потрібну панель
     const targetPane = document.getElementById(targetId);
     if (targetPane) targetPane.classList.add('show', 'active');
-    window.location.hash = targetId; 
+    
+    // Оновлюємо URL без стрибка сторінки
+    if (history.pushState) {
+        history.pushState(null, null, '#' + targetId);
+    }
 }
 
-document.querySelectorAll('.nav-link[data-target]').forEach(tab => {
-    tab.addEventListener('click', function(e) { e.preventDefault(); switchTab(this.getAttribute('data-target')); });
-});
-
+// 2. Єдиний обробник завантаження та ініціалізації
 document.addEventListener("DOMContentLoaded", function() {
+    // Навішуємо кліки на кнопки вкладок
+    document.querySelectorAll('.nav-link[data-target]').forEach(tab => {
+        tab.addEventListener('click', function(e) {
+            e.preventDefault();
+            switchTab(this.getAttribute('data-target'));
+        });
+    });
+
     const urlParams = new URLSearchParams(window.location.search);
-    const tab = urlParams.get('tab');
+    const tabParam = urlParams.get('tab');
     const appId = urlParams.get('app_id');
     const slotId = urlParams.get('slot');
     const weekKey = urlParams.get('week');
 
+    // Логіка переходів
     if (appId) {
         goToApp(appId);
-        // Очищуємо URL, щоб при наступних діях не було повторних переходів
-        const cleanUrl = window.location.origin + window.location.pathname + "#tab-apps";
-        window.history.replaceState({}, '', cleanUrl);
+        window.history.replaceState({}, '', window.location.origin + window.location.pathname + "#tab-apps");
     } 
-    else if (tab === 'calendar' && slotId && weekKey) {
+    else if (tabParam === 'calendar' && slotId && weekKey) {
         window.goToCalendarSlot(slotId, weekKey);
-        // ВАЖЛИВО: Очищуємо параметри календаря з URL після переходу
-        const cleanUrl = window.location.origin + window.location.pathname + "#tab-calendar";
-        window.history.replaceState({}, '', cleanUrl);
+        window.history.replaceState({}, '', window.location.origin + window.location.pathname + "#tab-calendar");
     } 
     else {
         let h = window.location.hash.substring(1); 
@@ -461,6 +561,77 @@ document.addEventListener("DOMContentLoaded", function() {
     }
 });
 
+// 3. Функції роботи з заявками та календарем
+window.goToCalendarSlot = function(slotId, mondayKey) {
+    switchTab('tab-calendar');
+    document.querySelectorAll('.slot-card').forEach(el => el.classList.remove('slot-highlight'));
+    
+    const weekContainer = document.getElementById(`cal-week-container-${mondayKey}`);
+    if (weekContainer) {
+        const collapseBtn = weekContainer.querySelector('.accordion-button');
+        if (collapseBtn && collapseBtn.classList.contains('collapsed')) collapseBtn.click();
+        
+        setTimeout(() => {
+            const slotEl = document.getElementById(`slot-${slotId}`);
+            if (slotEl) {
+                slotEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                slotEl.classList.add('slot-highlight');
+                slotEl.addEventListener('click', () => slotEl.classList.remove('slot-highlight'), { once: true });
+            }
+        }, 600);
+    }
+};
+
+function goToApp(id) {
+    const modalEl = document.getElementById('infoModal');
+    if (modalEl) {
+        const modalInstance = bootstrap.Modal.getInstance(modalEl);
+        if (modalInstance) modalInstance.hide();
+    }
+    switchTab('tab-apps');
+    setTimeout(() => {
+        const row = document.getElementById(`row-${id}`);
+        if (row) {
+            row.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            row.classList.add('highlight-row');
+            setTimeout(() => row.classList.remove('highlight-row'), 3000);
+        }
+    }, 450);
+}
+
+// 4. Адмін-дії та модалки
+async function confirmDelete(id) { 
+    if (confirm("Архівувати обрану заявку?")) { 
+        await fetch(`/admin/delete_appointment/${id}`, {method:'POST'}); 
+        window.location.reload(); 
+    } 
+}
+
+document.querySelectorAll('.action-btn').forEach(btn => {
+    btn.onclick = async function() {
+        const id = this.dataset.id, act = this.dataset.action;
+        let note = act === 'reject' ? prompt("Причина:") : "";
+        if (act === 'reject' && note === null) return;
+        await fetch(`/admin/update_status/${id}`, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({action:act, note:note})});
+        window.location.reload();
+    }
+});
+
+// Послуги
+function openServiceModal() { document.getElementById('serviceForm').reset(); document.getElementById('service-id').value = ''; new bootstrap.Modal(document.getElementById('serviceModal')).show(); }
+function editService(id, n, d) { document.getElementById('service-id').value = id; document.getElementById('m-name').value = n; document.getElementById('m-desc').value = d; new bootstrap.Modal(document.getElementById('serviceModal')).show(); }
+document.getElementById('serviceForm').onsubmit = async (e) => {
+    e.preventDefault();
+    const id = document.getElementById('service-id').value;
+    const fd = new FormData(); 
+    fd.append('name', document.getElementById('m-name').value); 
+    fd.append('description', document.getElementById('m-desc').value);
+    await fetch(id ? `/admin/services/edit/${id}` : '/admin/services/add', { method: 'POST', body: fd });
+    window.location.reload();
+};
+async function deleteService(id) { if(confirm("Видалити послугу?")) { await fetch(`/admin/services/delete/${id}`, {method:'POST'}); window.location.reload(); } }
+
+// Решта допоміжних функцій (Слоти)
 function checkDay(input, errorId) {
     const d = new Date(input.value).getUTCDay();
     if (d === 0 || d === 6) {
@@ -524,74 +695,27 @@ async function bulkDelete() {
     window.location.reload();
 }
 
-function openInfo(time, date, client, service, status, appId, email) {
+function openInfo(time, date, client, service, status, appId, email, isExpired) {
     let b = `<div class="mb-3"><strong>Час:</strong> ${date} о ${time}</div>`;
     if (client) {
-        b += `<div class="p-3 border rounded bg-light"><p class="mb-1"><strong>Клієнт:</strong> ${client}</p><p class="mb-1"><strong>Email:</strong> ${email}</p><p class="mb-1"><strong>Послуга:</strong> ${service}</p><p class="mb-0"><strong>Статус:</strong> <span class="badge ${status === 'підтверджено' ? 'bg-success' : (status === 'відхилено' ? 'bg-danger' : 'bg-warning text-dark')}">${status}</span></p></div>`;
+        b += `<div class="p-3 border rounded bg-light">
+                <p class="mb-1"><strong>Клієнт:</strong> ${client}</p>
+                <p class="mb-1"><strong>Email:</strong> ${email}</p>
+                <p class="mb-1"><strong>Послуга:</strong> ${service}</p>
+                <p class="mb-0"><strong>Статус:</strong> <span class="badge ${status === 'підтверджено' ? 'bg-success' : (status === 'відхилено' ? 'bg-danger' : 'bg-warning text-dark')}">${status}</span></p>
+              </div>`;
+    } else if (isExpired) {
+        b += `<div class="alert alert-secondary py-2 border-start border-4 border-primary">
+                <i class="fas fa-history me-2"></i>Цей часовий слот не був заброньований клієнтами, і термін його дії вже минув.
+              </div>`;
     } else {
         b += `<div class="alert alert-success py-2">Слот вільний.</div>`;
     }
     document.getElementById('infoBody').innerHTML = b;
-    document.getElementById('infoFooter').innerHTML = client ? `<button class="btn btn-dark-grey" onclick="goToApp('${appId}')">До списку заявок</button>` : `<button class="btn btn-secondary" data-bs-dismiss="modal">Закрити</button>`;
+    document.getElementById('infoFooter').innerHTML = (client && appId !== '') ? 
+        `<button class="btn btn-dark-grey" onclick="goToApp('${appId}')">До списку заявок</button>` : 
+        `<button class="btn btn-secondary" data-bs-dismiss="modal">Закрити</button>`;
     new bootstrap.Modal(document.getElementById('infoModal')).show();
 }
-
-window.goToCalendarSlot = function(slotId, mondayKey) {
-    switchTab('tab-calendar');
-    document.querySelectorAll('.slot-card').forEach(el => el.classList.remove('slot-highlight'));
-    const weekContainer = document.getElementById(`cal-week-container-${mondayKey}`);
-    if (weekContainer) {
-        const collapseBtn = weekContainer.querySelector('.accordion-button');
-        if (collapseBtn && collapseBtn.classList.contains('collapsed')) collapseBtn.click();
-        setTimeout(() => {
-            const slotEl = document.getElementById(`slot-${slotId}`);
-            if (slotEl) {
-                slotEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                slotEl.classList.add('slot-highlight');
-                slotEl.addEventListener('click', () => slotEl.classList.remove('slot-highlight'), { once: true });
-            }
-        }, 600);
-    }
-};
-
-function goToApp(id) {
-    const modalEl = document.getElementById('infoModal');
-    if (modalEl) {
-        const modalInstance = bootstrap.Modal.getInstance(modalEl);
-        if (modalInstance) modalInstance.hide();
-    }
-    switchTab('tab-apps');
-    setTimeout(() => {
-        const row = document.getElementById(`row-${id}`);
-        if (row) {
-            row.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            row.classList.add('highlight-row');
-            setTimeout(() => row.classList.remove('highlight-row'), 3000);
-        }
-    }, 450);
-}
-
-async function confirmDelete(id) { if (confirm("Архівувати обрану заявку?")) { await fetch(`/admin/delete_appointment/${id}`, {method:'POST'}); window.location.reload(); } }
-
-document.querySelectorAll('.action-btn').forEach(btn => {
-    btn.onclick = async function() {
-        const id = this.dataset.id, act = this.dataset.action;
-        let note = act === 'reject' ? prompt("Причина:") : "";
-        if (act === 'reject' && note === null) return;
-        await fetch(`/admin/update_status/${id}`, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({action:act, note:note})});
-        window.location.reload();
-    }
-});
-
-function openServiceModal() { document.getElementById('serviceForm').reset(); document.getElementById('service-id').value = ''; new bootstrap.Modal(document.getElementById('serviceModal')).show(); }
-function editService(id, n, d) { document.getElementById('service-id').value = id; document.getElementById('m-name').value = n; document.getElementById('m-desc').value = d; new bootstrap.Modal(document.getElementById('serviceModal')).show(); }
-document.getElementById('serviceForm').onsubmit = async (e) => {
-    e.preventDefault();
-    const id = document.getElementById('service-id').value;
-    const fd = new FormData(); fd.append('name', document.getElementById('m-name').value); fd.append('description', document.getElementById('m-desc').value);
-    await fetch(id ? `/admin/services/edit/${id}` : '/admin/services/add', { method: 'POST', body: fd });
-    window.location.reload();
-};
-async function deleteService(id) { if(confirm("Видалити послугу?")) { await fetch(`/admin/services/delete/${id}`, {method:'POST'}); window.location.reload(); } }
 </script>
 {% endblock %}

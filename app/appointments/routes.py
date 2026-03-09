@@ -3,7 +3,7 @@ from app import db, mail
 from app.appointments import bp
 from app.appointments.forms import AppointmentForm
 from app.models import Appointment, TimeSlot, Client
-from datetime import datetime
+from datetime import datetime, timedelta
 from flask_mail import Message
 
 @bp.route("/book", methods=["GET", "POST"])
@@ -11,8 +11,17 @@ def book():
     form = AppointmentForm()
 
     if request.method == "POST" and form.date.data:
-        slots = TimeSlot.query.filter_by(date=form.date.data, is_booked=False).order_by(TimeSlot.start_time).all()
-        form.time_id.choices = [(s.id, s.start_time.strftime("%H:%M")) for s in slots]
+        min_limit = datetime.now() + timedelta(hours=12)
+        
+        all_slots = TimeSlot.query.filter_by(date=form.date.data, is_booked=False).order_by(TimeSlot.start_time).all()
+        
+        valid_choices = []
+        for s in all_slots:
+            slot_dt = datetime.combine(s.date, s.start_time)
+            if slot_dt > min_limit:
+                valid_choices.append((s.id, s.start_time.strftime("%H:%M")))
+        
+        form.time_id.choices = valid_choices
 
     if form.validate_on_submit():
         client = Client.query.filter_by(email=form.email.data).first()
@@ -22,6 +31,13 @@ def book():
             db.session.flush()
 
         slot = TimeSlot.query.get(form.time_id.data)
+        
+        if slot:
+            slot_dt = datetime.combine(slot.date, slot.start_time)
+            if slot_dt < datetime.now() + timedelta(hours=12):
+                flash("Вибачте, запис на цей час вже неможливий (мінімум за 12 годин).", "danger")
+                return redirect(url_for("appointments.book"))
+
         if not slot or slot.is_booked:
             flash("Обраний час недоступний або вже заброньований.", "danger")
             return redirect(url_for("appointments.book"))
@@ -63,8 +79,20 @@ def available_times():
     except:
         return jsonify([])
 
+    min_limit = datetime.now() + timedelta(hours=12)
+    
     slots = TimeSlot.query.filter_by(date=selected_date, is_booked=False).order_by(TimeSlot.start_time).all()
-    return jsonify([{"id": s.id, "display": s.start_time.strftime("%H:%M")} for s in slots])
+    
+    available_data = []
+    for s in slots:
+        slot_dt = datetime.combine(s.date, s.start_time)
+        if slot_dt > min_limit:
+            available_data.append({
+                "id": s.id, 
+                "display": s.start_time.strftime("%H:%M")
+            })
+            
+    return jsonify(available_data)
 
 @bp.route("/success")
 def success():

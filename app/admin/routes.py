@@ -20,7 +20,8 @@ def admin_required(f):
 # --- СИСТЕМНІ ФУНКЦІЇ ОЧИЩЕННЯ ---
 
 def cleanup_tasks():
-    now = datetime.utcnow()
+    # // ЗМІНА // Використовуємо .now() для синхронізації з TZ=Europe/Kyiv
+    now = datetime.now() 
     
     one_day_ago = now - timedelta(days=1)
     to_archive = Appointment.query.filter(
@@ -29,12 +30,14 @@ def cleanup_tasks():
     ).all()
     
     for app in to_archive:
+        submitted_at = app.updated_at.strftime('%d.%m %H:%M') if app.updated_at else now.strftime('%d.%m %H:%M')
+        
         archive_entry = ArchivedAppointment(
             original_id=app.id,
             client_name=app.client.name,
             client_email=app.client.email,
             service_name=app.service.name,
-            slot_info=f"{app.slot.date.strftime('%d.%m.%Y')} {app.slot.start_time.strftime('%H:%M')}",
+            slot_info=f"{app.slot.date.strftime('%d.%m.%Y')} {app.slot.start_time.strftime('%H:%M')} | {submitted_at}",
             status=app.status,
             deletion_type='automatic'
         )
@@ -43,8 +46,8 @@ def cleanup_tasks():
         db.session.add(archive_entry)
         db.session.delete(app)
     
-    five_days_ago = now - timedelta(days=5)
-    ArchivedAppointment.query.filter(ArchivedAppointment.deleted_at <= five_days_ago).delete()
+    three_days_ago = now - timedelta(days=3)
+    ArchivedAppointment.query.filter(ArchivedAppointment.deleted_at <= three_days_ago).delete()
     
     db.session.commit()
 
@@ -65,11 +68,13 @@ def dashboard():
             date_key = slot.date.strftime('%Y-%m-%d')
             calendar_data[date_key].append(slot)
     
+    # // ЗМІНА // Додано 'now=datetime.now()' для коректної роботи фіолетових слотів у шаблоні
     return render_template('admin/dashboard.html', 
-                           appointments=appointments, 
-                           services=services,
-                           calendar_data=dict(calendar_data),
-                           relativedelta=relativedelta)
+                            appointments=appointments, 
+                            services=services,
+                            calendar_data=dict(calendar_data),
+                            relativedelta=relativedelta,
+                            now=datetime.now())
 
 @bp.route('/archive')
 @login_required
@@ -119,12 +124,15 @@ def update_status(id):
 @admin_required
 def delete_appointment(id):
     app = Appointment.query.get_or_404(id)
+    
+    submitted_at = app.updated_at.strftime('%d.%m %H:%M') if app.updated_at else "---"
+    
     archive_entry = ArchivedAppointment(
         original_id=app.id,
         client_name=app.client.name,
         client_email=app.client.email,
         service_name=app.service.name,
-        slot_info=f"{app.slot.date.strftime('%d.%m.%Y')} {app.slot.start_time.strftime('%H:%M')}",
+        slot_info=f"{app.slot.date.strftime('%d.%m.%Y')} {app.slot.start_time.strftime('%H:%M')} | {submitted_at}",
         status=app.status,
         deletion_type='manual'
     )
@@ -264,7 +272,8 @@ def get_notifications():
         urgent_items = []
 
         for a in pending_apps:
-            diff = now - a.updated_at
+            upd_time = a.updated_at if a.updated_at else datetime.now()
+            diff = now - upd_time
             hours_passed = int(diff.total_seconds() // 3600)
             
             base_text = f"{a.client.name} | {a.service.name} | {a.slot.date.strftime('%d.%m')}"
@@ -272,7 +281,7 @@ def get_notifications():
             item_data = {
                 'id': f"app_{a.id}",
                 'text': base_text,
-                'time': a.updated_at.strftime('%H:%M'),
+                'time': upd_time.strftime('%H:%M'),
                 'tab': 'apps'
             }
 

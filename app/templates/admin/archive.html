@@ -6,7 +6,7 @@
         <a href="{{ url_for('admin.dashboard') }}" class="btn btn-outline-primary btn-sm">Назад до панелі</a>
     </div>
     <p class="text-muted small mb-4">
-        <i class="fas fa-history"></i> Записи зберігаються в архіві протягом <strong>5 днів</strong>, після чого видаляються з бази даних назавжди.
+        <i class="fas fa-history"></i> Записи зберігаються в архіві протягом <strong>3 днів</strong>, після чого видаляються з бази даних назавжди.
     </p>
 
     <div class="row">
@@ -14,12 +14,23 @@
             <h4 class="text-secondary border-bottom pb-2">Видалено вручну</h4>
             <div class="list-group">
                 {% for entry in manual_deleted %}
-                <div class="list-group-item">
-                    <div class="d-flex w-100 justify-content-between">
-                        <h6 class="mb-1">{{ entry.client_name }}</h6>
-                        <small class="text-muted">{{ entry.deleted_at.strftime('%d.%m %H:%M') }}</small>
+                <div class="list-group-item p-3">
+                    <div class="d-flex w-100 justify-content-between align-items-start">
+                        <div class="me-3">
+                            <h6 class="mb-0 fw-bold">{{ entry.client_name }}</h6>
+                            <div class="text-muted small mb-1">{{ entry.client_email }}</div>
+                            <p class="mb-0 small text-dark"><strong>Послуга:</strong> {{ entry.service_name }}</p>
+                            
+                            {# Розділяємо дані з slot_info #}
+                            {% set parts = entry.slot_info.split('|') %}
+                            <p class="mb-0 small text-dark"><strong>Запис на:</strong> {{ parts[0] }}</p>
+                        </div>
+                        <div class="text-end" style="min-width: 170px; line-height: 1.4;">
+                            {# Виводимо реальну дату подання з другої частини рядка #}
+                            <div class="small text-dark"><strong>Подано:</strong> {{ parts[1] if parts|length > 1 else '---' }}</div>
+                            <div class="small text-danger"><strong>Видалено:</strong> {{ entry.deleted_at.strftime('%d.%m %H:%M') }}</div>
+                        </div>
                     </div>
-                    <small>{{ entry.service_name }} | {{ entry.slot_info }}</small>
                 </div>
                 {% else %}
                 <p class="text-muted italic mt-2">Записів немає</p>
@@ -32,12 +43,22 @@
             <p class="text-muted small">Відхилені заявки, що зберігалися понад 1 день</p>
             <div class="list-group">
                 {% for entry in auto_deleted %}
-                <div class="list-group-item border-danger-subtle">
-                    <div class="d-flex w-100 justify-content-between">
-                        <h6 class="mb-1">{{ entry.client_name }}</h6>
-                        <small class="text-muted">{{ entry.deleted_at.strftime('%d.%m %H:%M') }}</small>
+                <div class="list-group-item border-danger-subtle p-3">
+                    <div class="d-flex w-100 justify-content-between align-items-start">
+                        <div class="me-3">
+                            <h6 class="mb-0 fw-bold">{{ entry.client_name }}</h6>
+                            <div class="text-muted small mb-1">{{ entry.client_email }}</div>
+                            <p class="mb-0 small text-dark"><strong>Послуга:</strong> {{ entry.service_name }}</p>
+                            
+                            {# Розділяємо дані з slot_info #}
+                            {% set parts = entry.slot_info.split('|') %}
+                            <p class="mb-0 small text-dark"><strong>Запис на:</strong> {{ parts[0] }}</p>
+                        </div>
+                        <div class="text-end" style="min-width: 170px; line-height: 1.4;">
+                            <div class="small text-dark"><strong>Подано:</strong> {{ parts[1] if parts|length > 1 else '---' }}</div>
+                            <div class="small text-danger"><strong>Видалено:</strong> {{ entry.deleted_at.strftime('%d.%m %H:%M') }}</div>
+                        </div>
                     </div>
-                    <small>{{ entry.service_name }} | {{ entry.slot_info }}</small>
                 </div>
                 {% else %}
                 <p class="text-muted italic mt-2">Автоматично видалених заявок немає</p>

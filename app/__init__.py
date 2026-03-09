@@ -4,6 +4,7 @@ from flask_migrate import Migrate
 from flask_login import LoginManager
 from flask_mail import Mail
 from config import Config
+from sqlalchemy import event
 
 db = SQLAlchemy()
 migrate = Migrate()
@@ -18,7 +19,21 @@ def create_app(config_class=Config):
     app = Flask(__name__, template_folder='templates', static_folder='static')
     app.config.from_object(config_class)
 
+    app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
+        "connect_args": {
+            "options": "-c timezone=Europe/Kyiv"
+        }
+    }
+
     db.init_app(app)
+
+    with app.app_context():
+        @event.listens_for(db.engine, "connect")
+        def set_webapp_timezone(dbapi_connection, connection_record):
+            cursor = dbapi_connection.cursor()
+            cursor.execute("SET TIME ZONE 'Europe/Kyiv'")
+            cursor.close()
+
     migrate.init_app(app, db)
     login.init_app(app)
     mail.init_app(app)
