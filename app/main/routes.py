@@ -12,5 +12,7 @@ def contacts():
 
 @bp.route('/services')
 def services_list():
-    services = Service.query.order_by(Service.name.asc()).all()
+    services = Service.query.all()
+    services.sort(key=lambda x: x.name)
+    
     return render_template('main/services.html', services=services)

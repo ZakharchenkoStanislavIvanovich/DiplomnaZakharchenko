@@ -10,9 +10,10 @@ def login():
         return redirect(url_for('main.index'))
     
     if request.method == 'POST':
-        email = request.form.get('email')
+        email_input = request.form.get('email')
         password = request.form.get('password')
-        user = User.query.filter_by(email=email).first()
+        users = User.query.all()
+        user = next((u for u in users if u.email == email_input), None)
         
         if user and check_password_hash(user.password_hash, password):
             login_user(user)

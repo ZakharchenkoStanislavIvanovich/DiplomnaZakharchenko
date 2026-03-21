@@ -13,7 +13,11 @@ class AppointmentForm(FlaskForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.service_id.choices = [
-            (s.id, s.name) for s in Service.query.order_by(Service.name).all()
-        ]
+        
+        all_services = Service.query.all()
+        
+        all_services.sort(key=lambda x: x.name)
+        
+        self.service_id.choices = [(s.id, s.name) for s in all_services]
+        
         self.time_id.choices = []

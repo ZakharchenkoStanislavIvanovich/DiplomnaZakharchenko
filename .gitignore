@@ -13,3 +13,5 @@ venv/
 .terraform/
 *.tfstate
 *.tfstate.backup
+view_data.py
+migrate_encryption.py

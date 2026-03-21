@@ -17,17 +17,12 @@ def admin_required(f):
         return f(*args, **kwargs)
     return decorated_function
 
-# --- СИСТЕМНІ ФУНКЦІЇ ОЧИЩЕННЯ ---
-
 def cleanup_tasks():
-    # // ЗМІНА // Використовуємо .now() для синхронізації з TZ=Europe/Kyiv
     now = datetime.now() 
-    
     one_day_ago = now - timedelta(days=1)
-    to_archive = Appointment.query.filter(
-        Appointment.status == 'відхилено',
-        Appointment.updated_at <= one_day_ago
-    ).all()
+    
+    all_apps = Appointment.query.filter(Appointment.updated_at <= one_day_ago).all()
+    to_archive = [a for a in all_apps if a.status == 'відхилено']
     
     for app in to_archive:
         submitted_at = app.updated_at.strftime('%d.%m %H:%M') if app.updated_at else now.strftime('%d.%m %H:%M')
@@ -48,10 +43,7 @@ def cleanup_tasks():
     
     three_days_ago = now - timedelta(days=3)
     ArchivedAppointment.query.filter(ArchivedAppointment.deleted_at <= three_days_ago).delete()
-    
     db.session.commit()
-
-# --- РОУТИ ПАНЕЛІ КЕРУВАННЯ ---
 
 @bp.route('/dashboard')
 @login_required
@@ -59,7 +51,10 @@ def cleanup_tasks():
 def dashboard():
     cleanup_tasks()
     appointments = Appointment.query.order_by(Appointment.id.desc()).all()
+    
     services = Service.query.all()
+    services.sort(key=lambda x: x.name)
+    
     all_slots = TimeSlot.query.order_by(TimeSlot.date, TimeSlot.start_time).all()
     
     calendar_data = defaultdict(list)
@@ -68,7 +63,6 @@ def dashboard():
             date_key = slot.date.strftime('%Y-%m-%d')
             calendar_data[date_key].append(slot)
     
-    # // ЗМІНА // Додано 'now=datetime.now()' для коректної роботи фіолетових слотів у шаблоні
     return render_template('admin/dashboard.html', 
                             appointments=appointments, 
                             services=services,
@@ -81,9 +75,13 @@ def dashboard():
 @admin_required
 def archive():
     cleanup_tasks()
-    manual = ArchivedAppointment.query.filter_by(deletion_type='manual').order_by(ArchivedAppointment.deleted_at.desc()).all()
-    auto = ArchivedAppointment.query.filter_by(deletion_type='automatic').order_by(ArchivedAppointment.deleted_at.desc()).all()
+    all_archived = ArchivedAppointment.query.order_by(ArchivedAppointment.deleted_at.desc()).all()
+    
+    manual = [a for a in all_archived if a.deletion_type == 'manual']
+    auto = [a for a in all_archived if a.deletion_type == 'automatic']
+    
     return render_template('admin/archive.html', manual_deleted=manual, auto_deleted=auto)
+
 
 @bp.route('/update_status/<int:id>', methods=['POST'])
 @login_required
@@ -124,7 +122,6 @@ def update_status(id):
 @admin_required
 def delete_appointment(id):
     app = Appointment.query.get_or_404(id)
-    
     submitted_at = app.updated_at.strftime('%d.%m %H:%M') if app.updated_at else "---"
     
     archive_entry = ArchivedAppointment(
@@ -143,7 +140,6 @@ def delete_appointment(id):
     db.session.commit()
     return jsonify({'status': 'success'})
 
-# --- КЕРУВАННЯ ПОСЛУГАМИ ---
 
 @bp.route('/services/add', methods=['POST'])
 @login_required
@@ -179,7 +175,6 @@ def delete_service(id):
     db.session.commit()
     return jsonify({'status': 'success'})
 
-# --- КЕРУВАННЯ СЛОТАМИ ---
 
 @bp.route('/preview_slots', methods=['POST'])
 @login_required
@@ -205,16 +200,11 @@ def preview_slots():
 def confirm_slots():
     data = request.get_json()
     target_date = datetime.strptime(data.get('date'), '%Y-%m-%d').date()
-    if target_date.weekday() >= 5:
-        return jsonify({'status': 'error', 'message': 'Неможливо створити слоти на вихідні'}), 400
     for time_str in data.get('times', []):
         t = datetime.strptime(time_str, '%H:%M').time()
         existing = TimeSlot.query.filter_by(date=target_date, start_time=t).first()
         if not existing:
             db.session.add(TimeSlot(date=target_date, start_time=t, is_booked=False))
-        else:
-            if existing.appointments:
-                existing.is_booked = True
     db.session.commit()
     return jsonify({'status': 'success'})
 
@@ -228,22 +218,14 @@ def bulk_generate_slots():
     period = int(data['period'])
     days_generated = 0
     current_date = start_date
-    
     while days_generated < period:
         if current_date.weekday() <= 4:
             for time_str in times:
                 t = datetime.strptime(time_str, '%H:%M').time()
-                existing = TimeSlot.query.filter_by(date=current_date, start_time=t).first()
-                
-                if not existing:
-                    db.session.add(TimeSlot(date=current_date, start_time=t, is_booked=False))
-                else:
-                    if existing.appointments:
-                        existing.is_booked = True
-            
+                if not TimeSlot.query.filter_by(date=current_date, start_time=t).first():
+                    db.session.add(TimeSlot(date=current_date, start_time=t))
             days_generated += 1
         current_date += timedelta(days=1)
-        
     db.session.commit()
     return jsonify({'status': 'success'})
 
@@ -267,23 +249,18 @@ def get_notifications():
         notifications = []
         now = datetime.now()
         
-        pending_apps = Appointment.query.filter_by(status='очікує').all()
+        all_apps = Appointment.query.all()
+        pending_apps = [a for a in all_apps if a.status == 'очікує']
+        
         new_items = []
         urgent_items = []
 
         for a in pending_apps:
-            upd_time = a.updated_at if a.updated_at else datetime.now()
+            upd_time = a.updated_at if a.updated_at else now
             diff = now - upd_time
             hours_passed = int(diff.total_seconds() // 3600)
-            
             base_text = f"{a.client.name} | {a.service.name} | {a.slot.date.strftime('%d.%m')}"
-            
-            item_data = {
-                'id': f"app_{a.id}",
-                'text': base_text,
-                'time': upd_time.strftime('%H:%M'),
-                'tab': 'apps'
-            }
+            item_data = {'id': f"app_{a.id}", 'text': base_text, 'time': upd_time.strftime('%H:%M'), 'tab': 'apps'}
 
             if hours_passed >= 6:
                 item_data['text'] = f"{base_text} (очікує {hours_passed} год.)"
@@ -291,36 +268,33 @@ def get_notifications():
             else:
                 new_items.append(item_data)
 
-        if urgent_items:
-            notifications.append({'id': 'g_urgent', 'type': 'urgent', 'header': f"ТЕРМІНОВІ ({len(urgent_items)})", 'items': urgent_items})
-        if new_items:
-            notifications.append({'id': 'g_new', 'type': 'new', 'header': f"Нові заявки ({len(new_items)})", 'items': new_items})
+        if urgent_items: notifications.append({'id': 'g_urgent', 'type': 'urgent', 'header': f"ТЕРМІНОВІ ({len(urgent_items)})", 'items': urgent_items})
+        if new_items: notifications.append({'id': 'g_new', 'type': 'new', 'header': f"Нові заявки ({len(new_items)})", 'items': new_items})
 
-        all_active = Appointment.query.join(TimeSlot).filter(Appointment.status.in_(['підтверджено', 'очікує'])).all()
-        today_apps = [a for a in all_active if a.slot.date == now.date()]
+        today_apps_query = Appointment.query.join(TimeSlot).filter(TimeSlot.date == now.date()).all()
+        today_apps = [a for a in today_apps_query if a.status in ['підтверджено', 'очікує']]
+        
         if today_apps:
             notifications.append({
                 'id': 'g_today', 'type': 'today', 'header': f"План на сьогодні ({len(today_apps)})",
                 'items': [{
-                    'id': f"today_{a.id}",
-                    'text': f"{a.client.name} | {a.service.name} | {a.slot.start_time.strftime('%H:%M')}",
-                    'time': a.slot.start_time.strftime('%H:%M'),
-                    'slot_id': a.slot.id,
+                    'id': f"today_{a.id}", 'text': f"{a.client.name} | {a.service.name} | {a.slot.start_time.strftime('%H:%M')}",
+                    'time': a.slot.start_time.strftime('%H:%M'), 'slot_id': a.slot.id,
                     'monday_key': (a.slot.date - timedelta(days=a.slot.date.weekday())).strftime('%Y-%m-%d'),
                     'tab': 'calendar'
                 } for a in sorted(today_apps, key=lambda x: x.slot.start_time)]
             })
 
         twelve_hours_ago = now - timedelta(hours=12)
-        deleted = ArchivedAppointment.query.filter(ArchivedAppointment.deletion_type == 'automatic', ArchivedAppointment.deleted_at >= twelve_hours_ago).all()
+        all_archived = ArchivedAppointment.query.filter(ArchivedAppointment.deleted_at >= twelve_hours_ago).all()
+        deleted = [d for d in all_archived if d.deletion_type == 'automatic']
+        
         if deleted:
             notifications.append({
                 'id': 'g_del', 'type': 'info', 'header': f"Авто-очищення ({len(deleted)})",
                 'items': [{
-                    'id': f"del_{d.id}",
-                    'text': f"{d.client_name} | {d.service_name} | {d.slot_info}",
-                    'time': d.deleted_at.strftime('%H:%M'),
-                    'tab': 'archive'
+                    'id': f"del_{d.id}", 'text': f"{d.client_name} | {d.service_name} | {d.slot_info}",
+                    'time': d.deleted_at.strftime('%H:%M'), 'tab': 'archive'
                 } for d in deleted]
             })
 

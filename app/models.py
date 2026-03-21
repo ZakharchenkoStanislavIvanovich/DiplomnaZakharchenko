@@ -1,24 +1,58 @@
 from app import db
 from flask_login import UserMixin
 from datetime import datetime
+from app.utils import encrypt_data, decrypt_data
 
 class User(UserMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    username = db.Column(db.String(64), unique=True, nullable=False)
-    email = db.Column(db.String(120), unique=True, nullable=False)
+    _username = db.Column('username', db.Text, unique=True, nullable=False)
+    _email = db.Column('email', db.Text, unique=True, nullable=False)
     password_hash = db.Column(db.String(512)) 
     is_admin = db.Column(db.Boolean, default=False)
 
+    @property
+    def username(self):
+        return decrypt_data(self._username)
+    @username.setter
+    def username(self, value):
+        self._username = encrypt_data(value)
+
+    @property
+    def email(self):
+        return decrypt_data(self._email)
+    @email.setter
+    def email(self, value):
+        self._email = encrypt_data(value)
+
 class Client(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(100), nullable=False)
-    email = db.Column(db.String(120), unique=True, nullable=False)
+    _name = db.Column('name', db.Text, nullable=False)
+    _email = db.Column('email', db.Text, nullable=False)
+
+    @property
+    def name(self): return decrypt_data(self._name)
+    @name.setter
+    def name(self, value): self._name = encrypt_data(value)
+
+    @property
+    def email(self): return decrypt_data(self._email)
+    @email.setter
+    def email(self, value): self._email = encrypt_data(value)
 
 class Service(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(100), nullable=False)
-    description = db.Column(db.Text)
-    price = db.Column(db.Numeric(10, 2), default=0.0)
+    _name = db.Column('name', db.Text, nullable=False)
+    _description = db.Column('description', db.Text)
+
+    @property
+    def name(self): return decrypt_data(self._name)
+    @name.setter
+    def name(self, value): self._name = encrypt_data(value)
+
+    @property
+    def description(self): return decrypt_data(self._description)
+    @description.setter
+    def description(self, value): self._description = encrypt_data(value)
 
 class TimeSlot(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -31,8 +65,13 @@ class Appointment(db.Model):
     client_id = db.Column(db.Integer, db.ForeignKey('client.id'), nullable=False)
     service_id = db.Column(db.Integer, db.ForeignKey('service.id'), nullable=False)
     slot_id = db.Column(db.Integer, db.ForeignKey('time_slot.id'), nullable=False)
-    status = db.Column(db.String(20), default='очікує') 
+    _status = db.Column('status', db.Text, default=lambda: encrypt_data('очікує')) 
     updated_at = db.Column(db.DateTime, default=datetime.now, onupdate=datetime.now)
+
+    @property
+    def status(self): return decrypt_data(self._status)
+    @status.setter
+    def status(self, value): self._status = encrypt_data(value)
 
     client = db.relationship("Client", backref="appointments")
     service = db.relationship("Service", backref="appointments")
@@ -41,10 +80,40 @@ class Appointment(db.Model):
 class ArchivedAppointment(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     original_id = db.Column(db.Integer)
-    client_name = db.Column(db.String(100))
-    client_email = db.Column(db.String(120))
-    service_name = db.Column(db.String(100))
-    slot_info = db.Column(db.String(100))
-    status = db.Column(db.String(20))
-    deletion_type = db.Column(db.String(20))
+    _client_name = db.Column('client_name', db.Text)
+    _client_email = db.Column('client_email', db.Text)
+    _service_name = db.Column('service_name', db.Text)
+    _slot_info = db.Column('slot_info', db.Text)
+    _status = db.Column('status', db.Text)
+    _deletion_type = db.Column('deletion_type', db.Text)
     deleted_at = db.Column(db.DateTime, default=datetime.now)
+
+    @property
+    def client_name(self): return decrypt_data(self._client_name)
+    @client_name.setter
+    def client_name(self, value): self._client_name = encrypt_data(value)
+
+    @property
+    def client_email(self): return decrypt_data(self._client_email)
+    @client_email.setter
+    def client_email(self, value): self._client_email = encrypt_data(value)
+
+    @property
+    def service_name(self): return decrypt_data(self._service_name)
+    @service_name.setter
+    def service_name(self, value): self._service_name = encrypt_data(value)
+
+    @property
+    def slot_info(self): return decrypt_data(self._slot_info)
+    @slot_info.setter
+    def slot_info(self, value): self._slot_info = encrypt_data(value)
+
+    @property
+    def status(self): return decrypt_data(self._status)
+    @status.setter
+    def status(self, value): self._status = encrypt_data(value)
+
+    @property
+    def deletion_type(self): return decrypt_data(self._deletion_type)
+    @deletion_type.setter
+    def deletion_type(self, value): self._deletion_type = encrypt_data(value)

@@ -33,3 +33,4 @@ psycopg[binary]
 pytest
 Flask-Mail
 python-dateutil
+cryptography==42.0.5

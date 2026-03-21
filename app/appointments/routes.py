@@ -12,7 +12,6 @@ def book():
 
     if request.method == "POST" and form.date.data:
         min_limit = datetime.now() + timedelta(hours=12)
-        
         all_slots = TimeSlot.query.filter_by(date=form.date.data, is_booked=False).order_by(TimeSlot.start_time).all()
         
         valid_choices = []
@@ -20,15 +19,12 @@ def book():
             slot_dt = datetime.combine(s.date, s.start_time)
             if slot_dt > min_limit:
                 valid_choices.append((s.id, s.start_time.strftime("%H:%M")))
-        
         form.time_id.choices = valid_choices
 
     if form.validate_on_submit():
-        client = Client.query.filter_by(email=form.email.data).first()
-        if not client:
-            client = Client(name=form.name.data, email=form.email.data)
-            db.session.add(client)
-            db.session.flush()
+        client = Client(name=form.name.data, email=form.email.data)
+        db.session.add(client)
+        db.session.flush()
 
         slot = TimeSlot.query.get(form.time_id.data)
         
@@ -65,7 +61,6 @@ def book():
 
     if request.method == "POST" and not form.validate_on_submit():
         flash("Перевірте введені дані.", "danger")
-        print("DEBUG form errors:", form.errors)
 
     return render_template("appointments/book.html", form=form)
 
@@ -80,7 +75,6 @@ def available_times():
         return jsonify([])
 
     min_limit = datetime.now() + timedelta(hours=12)
-    
     slots = TimeSlot.query.filter_by(date=selected_date, is_booked=False).order_by(TimeSlot.start_time).all()
     
     available_data = []
