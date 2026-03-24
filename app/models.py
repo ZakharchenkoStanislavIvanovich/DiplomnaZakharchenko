@@ -28,6 +28,7 @@ class Client(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     _name = db.Column('name', db.Text, nullable=False)
     _email = db.Column('email', db.Text, nullable=False)
+    _phone = db.Column('phone', db.Text, nullable=True)
 
     @property
     def name(self): return decrypt_data(self._name)
@@ -38,6 +39,11 @@ class Client(db.Model):
     def email(self): return decrypt_data(self._email)
     @email.setter
     def email(self, value): self._email = encrypt_data(value)
+
+    @property
+    def phone(self): return decrypt_data(self._phone)
+    @phone.setter
+    def phone(self, value): self._phone = encrypt_data(value)
 
 class Service(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -82,6 +88,7 @@ class ArchivedAppointment(db.Model):
     original_id = db.Column(db.Integer)
     _client_name = db.Column('client_name', db.Text)
     _client_email = db.Column('client_email', db.Text)
+    _client_phone = db.Column('client_phone', db.Text, nullable=True)
     _service_name = db.Column('service_name', db.Text)
     _slot_info = db.Column('slot_info', db.Text)
     _status = db.Column('status', db.Text)
@@ -97,6 +104,11 @@ class ArchivedAppointment(db.Model):
     def client_email(self): return decrypt_data(self._client_email)
     @client_email.setter
     def client_email(self, value): self._client_email = encrypt_data(value)
+
+    @property
+    def client_phone(self): return decrypt_data(self._client_phone)
+    @client_phone.setter
+    def client_phone(self, value): self._client_phone = encrypt_data(value)
 
     @property
     def service_name(self): return decrypt_data(self._service_name)

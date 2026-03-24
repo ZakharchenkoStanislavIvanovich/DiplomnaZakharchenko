@@ -9,6 +9,7 @@
       <tr><td style="padding: 5px 0; color: #666; width: 120px;">Послуга:</td><td><strong>{{ appointment.service.name }}</strong></td></tr>
       <tr><td style="padding: 5px 0; color: #666;">Дата:</td><td><strong>{{ appointment.slot.date.strftime('%d.%m.%Y') if appointment.slot.date else 'Уточнюється' }}</strong></td></tr>
       <tr><td style="padding: 5px 0; color: #666;">Час:</td><td><strong>{{ appointment.slot.start_time.strftime('%H:%M') if appointment.slot.start_time else 'Уточнюється' }}</strong></td></tr>
+      <tr><td style="padding: 5px 0; color: #666; width: 120px;">Телефон:</td><td><strong>{{ appointment.client.phone }}</strong></td></tr>
     </table>
   </div>
 

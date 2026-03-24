@@ -22,7 +22,7 @@ def book():
         form.time_id.choices = valid_choices
 
     if form.validate_on_submit():
-        client = Client(name=form.name.data, email=form.email.data)
+        client = Client(name=form.name.data, email=form.email.data, phone=form.phone.data)
         db.session.add(client)
         db.session.flush()
 

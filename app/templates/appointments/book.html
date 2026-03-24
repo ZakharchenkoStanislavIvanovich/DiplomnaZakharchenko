@@ -6,7 +6,8 @@
 
 <style>
   body {
-      overflow: hidden;
+      overflow: auto;
+      min-height: 100vh;
   }
 
   #infoButton {
@@ -76,6 +77,14 @@
             </div>
 
             <div class="mb-3">
+                {{ form.phone.label(class="form-label") }}
+                {{ form.phone(class="form-control", placeholder="+380XXXXXXXXX") }}
+                {% for error in form.phone.errors %}
+                <div class="text-danger small">{{ error }}</div>
+                {% endfor %}
+            </div>
+
+            <div class="mb-3">
                 {{ form.service_id.label(class="form-label") }}
                 <div class="d-flex gap-2">
                     {{ form.service_id(class="form-select", id="service_select") }}
@@ -91,7 +100,6 @@
 
             <div class="mb-3">
                 {{ form.date.label(class="form-label") }}
-                {# Додаємо min для поточної дати через JS нижче #}
                 {{ form.date(class="form-control", id="date") }}
                 {% for error in form.date.errors %}
                 <div class="text-danger small">{{ error }}</div>

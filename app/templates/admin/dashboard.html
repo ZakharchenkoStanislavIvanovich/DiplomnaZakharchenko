@@ -35,8 +35,7 @@
                     <thead>
                         <tr>
                             <th>№ п/п</th>
-                            <th>Клієнт</th>
-                            <th>Послуга</th>
+                            <th>Клієнт / Телефон</th> <th>Послуга</th>
                             <th>Дата / Час прийому</th>
                             <th>Подано</th>
                             <th>Статус</th>
@@ -48,7 +47,14 @@
                         {% for app in appointments %}
                         <tr id="row-{{ app.id }}">
                             <td>{{ appointments|length - loop.index0 }}</td>
-                            <td><strong>{{ app.client.name }}</strong><br><small>{{ app.client.email }}</small></td>
+                            <td>
+                                <strong>{{ app.client.name }}</strong><br>
+                                <div class="small text-dark mb-1">
+                                    <i class="fas fa-phone-alt small text-muted me-1"></i> 
+                                    {{ app.client.phone if app.client.phone else '---' }}
+                                </div>
+                                <small class="text-muted">{{ app.client.email }}</small>
+                            </td>
                             <td>{{ app.service.name }}</td>
                             <td>{{ app.slot.date.strftime('%d.%m.%Y') }} | {{ app.slot.start_time.strftime('%H:%M') }}</td>
                             <td class="small text-dark">
@@ -161,7 +167,6 @@
                                             {% for slot in d_slots|sort(attribute='start_time') %}
                                                 {% set active_app = slot.appointments[0] if slot.appointments else None %}
                                                 
-                                                {# ПЕРЕВІРКА ЧАСУ ДЛЯ ФІОЛЕТОВОГО КОЛЬОРУ #}
                                                 {% set slot_dt_str = slot.date.strftime('%Y-%m-%d') ~ ' ' ~ slot.start_time.strftime('%H:%M') %}
                                                 {% set is_expired = not active_app and slot_dt_str < now.strftime('%Y-%m-%d %H:%M') %}
 
@@ -175,7 +180,7 @@
                                                     {% else %}
                                                         slot-free
                                                     {% endif %}"
-                                                    onclick="openInfo(`{{ slot.start_time.strftime('%H:%M') }}`, `{{ d_curr_obj.strftime('%d.%m.%Y') }}`, `{{ active_app.client.name if active_app else '' }}`, `{{ active_app.service.name if active_app else '' }}`, `{{ active_app.status if active_app else '' }}`, `{{ active_app.id if active_app else '' }}`, `{{ active_app.client.email if active_app else '' }}`, {{ 'true' if is_expired else 'false' }})">
+                                                    onclick="openInfo(`{{ slot.start_time.strftime('%H:%M') }}`, `{{ d_curr_obj.strftime('%d.%m.%Y') }}`, `{{ active_app.client.name if active_app else '' }}`, `{{ active_app.service.name if active_app else '' }}`, `{{ active_app.status if active_app else '' }}`, `{{ active_app.id if active_app else '' }}`, `{{ active_app.client.email if active_app else '' }}`, {{ 'true' if is_expired else 'false' }},`{{ active_app.client.phone if active_app else '' }}`)">
                                                     {{ slot.start_time.strftime('%H:%M') }}
                                                 </div>
                                             {% endfor %}
@@ -269,7 +274,6 @@
                                             {% for slot in d_day_slots|sort(attribute='start_time') %}
                                                 {% set app = slot.appointments[0] if slot.appointments else None %}
                                                 
-                                                {# ПЕРЕВІРКА ЧАСУ #}
                                                 {% set slot_dt_check = slot.date.strftime('%Y-%m-%d') ~ ' ' ~ slot.start_time.strftime('%H:%M') %}
                                                 {% set is_expired_manage = not app and slot_dt_check < now.strftime('%Y-%m-%d %H:%M') %}
 
@@ -506,26 +510,45 @@ async function bulkDelete() {
     window.location.reload();
 }
 
-function openInfo(time, date, client, service, status, appId, email, isExpired) {
+function openInfo(time, date, client, service, status, appId, email, isExpired, phone) {
+    let phoneDisplay = phone && phone !== 'None' ? phone : '---';
+    let isArchived = status === 'архівовано';
+    
     let b = `<div class="mb-3"><strong>Час:</strong> ${date} о ${time}</div>`;
+    
+    if (isArchived) {
+        b += `<div class="alert alert-info py-2 small mb-3">
+                <i class="fas fa-archive me-2"></i>Ця заявка була перенесена в архів.
+              </div>`;
+    }
+
     if (client) {
         b += `<div class="p-3 border rounded bg-light">
                 <p class="mb-1"><strong>Клієнт:</strong> ${client}</p>
+                <div class="small text-dark mb-1">
+                    <i class="fas fa-phone-alt small text-muted me-1"></i> <strong>${phoneDisplay}</strong>
+                </div>
                 <p class="mb-1"><strong>Email:</strong> ${email}</p>
                 <p class="mb-1"><strong>Послуга:</strong> ${service}</p>
-                <p class="mb-0"><strong>Статус:</strong> <span class="badge ${status === 'підтверджено' ? 'bg-success' : (status === 'відхилено' ? 'bg-danger' : 'bg-warning text-dark')}">${status}</span></p>
+                <p class="mb-0"><strong>Статус:</strong> 
+                    <span class="badge ${status === 'підтверджено' ? 'bg-success' : (status === 'відхилено' ? 'bg-danger' : 'bg-secondary')}">
+                        ${status}
+                    </span>
+                </p>
               </div>`;
     } else if (isExpired) {
         b += `<div class="alert alert-secondary py-2 border-start border-4 border-primary">
-                <i class="fas fa-history me-2"></i>Цей часовий слот не був заброньований клієнтами, і термін його дії вже минув.
+                <i class="fas fa-history me-2"></i>Слот не був заброньований, час минув.
               </div>`;
     } else {
         b += `<div class="alert alert-success py-2">Слот вільний.</div>`;
     }
+    
     document.getElementById('infoBody').innerHTML = b;
-    document.getElementById('infoFooter').innerHTML = (client && appId !== '') ? 
+    document.getElementById('infoFooter').innerHTML = (client && appId !== '' && !isArchived) ? 
         `<button class="btn btn-dark-grey" onclick="goToApp('${appId}')">До списку заявок</button>` : 
         `<button class="btn btn-secondary" data-bs-dismiss="modal">Закрити</button>`;
+    
     new bootstrap.Modal(document.getElementById('infoModal')).show();
 }
 </script>
