@@ -8,6 +8,7 @@ from functools import wraps
 from flask_mail import Message
 from collections import defaultdict
 from dateutil.relativedelta import relativedelta
+from app.utils import encrypt_data, decrypt_data
 
 def admin_required(f):
     @wraps(f)
@@ -20,17 +21,20 @@ def admin_required(f):
 def cleanup_tasks():
     now = datetime.now() 
     one_day_ago = now - timedelta(days=1)
+    all_rejected = Appointment.query.filter(
+        Appointment._status == encrypt_data('відхилено')
+    ).all()
     
-    all_apps = Appointment.query.filter(Appointment.updated_at <= one_day_ago).all()
-    to_archive = [a for a in all_apps if a.status == 'відхилено']
+    to_archive = [a for a in all_rejected if a.created_at <= one_day_ago]
     
     for app in to_archive:
-        submitted_at = app.updated_at.strftime('%d.%m %H:%M') if app.updated_at else now.strftime('%d.%m %H:%M')
+        submitted_at = app.created_at.strftime('%d.%m %H:%M')
         
         archive_entry = ArchivedAppointment(
-            original_id=app.id,
+            original_id=app.slot_id,
             client_name=app.client.name,
             client_email=app.client.email,
+            client_phone=app.client.phone,
             service_name=app.service.name,
             slot_info=f"{app.slot.date.strftime('%d.%m.%Y')} {app.slot.start_time.strftime('%H:%M')} | {submitted_at}",
             status=app.status,
@@ -51,12 +55,12 @@ def cleanup_tasks():
 def dashboard():
     cleanup_tasks()
     appointments = Appointment.query.order_by(Appointment.id.desc()).all()
-    
     services = Service.query.all()
     services.sort(key=lambda x: x.name)
-    
     all_slots = TimeSlot.query.order_by(TimeSlot.date, TimeSlot.start_time).all()
     
+    all_archived = ArchivedAppointment.query.all()
+
     calendar_data = defaultdict(list)
     for slot in all_slots:
         if slot.date.weekday() <= 4:
@@ -67,6 +71,7 @@ def dashboard():
                             appointments=appointments, 
                             services=services,
                             calendar_data=dict(calendar_data),
+                            all_archived=all_archived,
                             relativedelta=relativedelta,
                             now=datetime.now())
 
@@ -122,12 +127,13 @@ def update_status(id):
 @admin_required
 def delete_appointment(id):
     app = Appointment.query.get_or_404(id)
-    submitted_at = app.updated_at.strftime('%d.%m %H:%M') if app.updated_at else "---"
+    submitted_at = app.created_at.strftime('%d.%m %H:%M')
     
     archive_entry = ArchivedAppointment(
-        original_id=app.id,
+        original_id=app.slot_id,
         client_name=app.client.name,
         client_email=app.client.email,
+        client_phone=app.client.phone,
         service_name=app.service.name,
         slot_info=f"{app.slot.date.strftime('%d.%m.%Y')} {app.slot.start_time.strftime('%H:%M')} | {submitted_at}",
         status=app.status,
@@ -249,55 +255,30 @@ def get_notifications():
         notifications = []
         now = datetime.now()
         
+        # Витягуємо ВСІ заявки і фільтруємо в Python (найнадійніший метод для шифрованих полів)
         all_apps = Appointment.query.all()
         pending_apps = [a for a in all_apps if a.status == 'очікує']
         
         new_items = []
         urgent_items = []
-
         for a in pending_apps:
-            upd_time = a.updated_at if a.updated_at else now
+            # Використовуємо розшифрований created_at
+            upd_time = a.created_at if a.created_at else now
             diff = now - upd_time
             hours_passed = int(diff.total_seconds() // 3600)
-            base_text = f"{a.client.name} | {a.service.name} | {a.slot.date.strftime('%d.%m')}"
+            
+            base_text = f"{a.client.name} | {a.service.name}"
             item_data = {'id': f"app_{a.id}", 'text': base_text, 'time': upd_time.strftime('%H:%M'), 'tab': 'apps'}
-
+            
             if hours_passed >= 6:
-                item_data['text'] = f"{base_text} (очікує {hours_passed} год.)"
                 urgent_items.append(item_data)
             else:
                 new_items.append(item_data)
 
-        if urgent_items: notifications.append({'id': 'g_urgent', 'type': 'urgent', 'header': f"ТЕРМІНОВІ ({len(urgent_items)})", 'items': urgent_items})
-        if new_items: notifications.append({'id': 'g_new', 'type': 'new', 'header': f"Нові заявки ({len(new_items)})", 'items': new_items})
-
-        today_apps_query = Appointment.query.join(TimeSlot).filter(TimeSlot.date == now.date()).all()
-        today_apps = [a for a in today_apps_query if a.status in ['підтверджено', 'очікує']]
-        
-        if today_apps:
-            notifications.append({
-                'id': 'g_today', 'type': 'today', 'header': f"План на сьогодні ({len(today_apps)})",
-                'items': [{
-                    'id': f"today_{a.id}", 'text': f"{a.client.name} | {a.service.name} | {a.slot.start_time.strftime('%H:%M')}",
-                    'time': a.slot.start_time.strftime('%H:%M'), 'slot_id': a.slot.id,
-                    'monday_key': (a.slot.date - timedelta(days=a.slot.date.weekday())).strftime('%Y-%m-%d'),
-                    'tab': 'calendar'
-                } for a in sorted(today_apps, key=lambda x: x.slot.start_time)]
-            })
-
-        twelve_hours_ago = now - timedelta(hours=12)
-        all_archived = ArchivedAppointment.query.filter(ArchivedAppointment.deleted_at >= twelve_hours_ago).all()
-        deleted = [d for d in all_archived if d.deletion_type == 'automatic']
-        
-        if deleted:
-            notifications.append({
-                'id': 'g_del', 'type': 'info', 'header': f"Авто-очищення ({len(deleted)})",
-                'items': [{
-                    'id': f"del_{d.id}", 'text': f"{d.client_name} | {d.service_name} | {d.slot_info}",
-                    'time': d.deleted_at.strftime('%H:%M'), 'tab': 'archive'
-                } for d in deleted]
-            })
+        if urgent_items: notifications.append({'id': 'g_urgent', 'header': 'ТЕРМІНОВІ', 'items': urgent_items})
+        if new_items: notifications.append({'id': 'g_new', 'header': 'Нові заявки', 'items': new_items})
 
         return jsonify({'details': notifications})
     except Exception as e:
+        print(f"NOTIF ERROR: {e}")
         return jsonify({'error': str(e)}), 500

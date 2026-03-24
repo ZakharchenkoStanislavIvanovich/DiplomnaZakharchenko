@@ -30,7 +30,7 @@
       .notif-dropdown-custom { width: 450px; max-height: 480px; overflow-y: auto; right: 0; left: auto !important; padding: 15px !important; border-radius: 12px; box-shadow: -5px 5px 20px rgba(0,0,0,0.2) !important; }
       .header-notif-container { cursor: pointer; font-size: 0.9rem; transition: background 0.2s; padding: 10px !important; display: flex !important; justify-content: space-between; align-items: center; border-radius: 8px; }
       .header-notif-container:hover { background-color: #e2e6ea !important; }
-      .sub-item-link { display: block; padding: 10px 40px 10px 12px; background: #f8f9fa; border: 1px solid #eee; border-radius: 8px; text-decoration: none; color: #333; font-size: 0.82rem; transition: all 0.2s; }
+      .sub-item-link { display: block; padding: 10px 40px 10px 12px; background: #f8f9fa; border: 1px solid #eee; border-radius: 8px; text-decoration: none; color: #333; font-size: 0.82rem; transition: all 0.2s; position: relative;}
       .sub-item-link:hover { background: #e9ecef; color: #000; border-color: var(--notary-olive); }
       .btn-dismiss-single { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); background: none; border: none; color: #ccc; font-size: 14px; z-index: 10; padding: 5px; }
       .btn-dismiss-single:hover { color: #dc3545; }
@@ -168,17 +168,17 @@
                               if(item.tab === 'calendar') url = `{{ url_for('admin.dashboard') }}?tab=calendar&slot=${item.slot_id}&week=${item.monday_key}`;
                               
                               return `
-                                  <div class="sub-item-container">
-                                      <a href="${url}" class="sub-item-link" onclick="event.stopPropagation();">
-                                          <span class="notif-time">${item.time}</span>
-                                          ${item.text}
-                                      </a>
-                                      <button type="button" class="btn-dismiss-single" 
-                                              onclick="dismissNotif(event, '${item.id}')" title="Приховати">
-                                          <i class="fas fa-times"></i>
-                                      </button>
-                                  </div>
-                              `;
+                                <div class="sub-item-container" style="position: relative; margin-bottom: 5px;">
+                                    <a href="${url}" class="sub-item-link" onclick="event.stopPropagation();">
+                                        <span class="notif-time">${item.time}</span>
+                                        ${item.text}
+                                        <button type="button" class="btn-dismiss-single" 
+                                                onclick="dismissNotif(event, '${item.id}')" title="Приховати">
+                                            <i class="fas fa-times"></i>
+                                        </button>
+                                    </a>
+                                </div>
+                            `;
                           }).join('')}
                       </div>
                   </li>

@@ -71,13 +71,32 @@ class Appointment(db.Model):
     client_id = db.Column(db.Integer, db.ForeignKey('client.id'), nullable=False)
     service_id = db.Column(db.Integer, db.ForeignKey('service.id'), nullable=False)
     slot_id = db.Column(db.Integer, db.ForeignKey('time_slot.id'), nullable=False)
-    _status = db.Column('status', db.Text, default=lambda: encrypt_data('очікує')) 
-    updated_at = db.Column(db.DateTime, default=datetime.now, onupdate=datetime.now)
+    _status = db.Column('status', db.Text, default=lambda: encrypt_data('очікує'))
+    _created_at = db.Column('created_at', db.Text, default=lambda: encrypt_data(datetime.now().isoformat()))
 
     @property
-    def status(self): return decrypt_data(self._status)
+    def status(self): 
+        return decrypt_data(self._status)
+    
     @status.setter
-    def status(self, value): self._status = encrypt_data(value)
+    def status(self, value): 
+        self._status = encrypt_data(value)
+
+    @property
+    def created_at(self):
+        try:
+            if not self._created_at:
+                return None
+            return datetime.fromisoformat(decrypt_data(self._created_at))
+        except Exception:
+            return None
+
+    @created_at.setter
+    def created_at(self, value):
+        if isinstance(value, datetime):
+            self._created_at = encrypt_data(value.isoformat())
+        else:
+            self._created_at = encrypt_data(value)
 
     client = db.relationship("Client", backref="appointments")
     service = db.relationship("Service", backref="appointments")

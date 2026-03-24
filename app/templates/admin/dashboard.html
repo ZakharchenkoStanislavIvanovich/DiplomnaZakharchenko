@@ -5,6 +5,7 @@
 {% endblock %}
 
 {% block content %}
+
 <div id="dashboard-page">
 
     {% set days_full = {'Monday': 'Понеділок', 'Tuesday': 'Вівторок', 'Wednesday': 'Середа', 'Thursday': 'Четвер', 'Friday': 'П’ятниця'} %}
@@ -58,11 +59,8 @@
                             <td>{{ app.service.name }}</td>
                             <td>{{ app.slot.date.strftime('%d.%m.%Y') }} | {{ app.slot.start_time.strftime('%H:%M') }}</td>
                             <td class="small text-dark">
-                                {% if app.updated_at %}
-                                    {{ app.updated_at.strftime('%d.%m.%Y') }}<br>{{ app.updated_at.strftime('%H:%M') }}
-                                {% else %}
-                                    —
-                                {% endif %}
+                                {{ app.created_at.strftime('%d.%m.%Y') }}<br>
+                                {{ app.created_at.strftime('%H:%M') }}
                             </td>
                             <td>
                                 <span class="badge {% if app.status == 'підтверджено' %}bg-success{% elif app.status == 'відхилено' %}bg-danger{% else %}bg-warning text-dark{% endif %}">
@@ -166,21 +164,30 @@
                                         <div class="d-flex flex-wrap gap-2">
                                             {% for slot in d_slots|sort(attribute='start_time') %}
                                                 {% set active_app = slot.appointments[0] if slot.appointments else None %}
-                                                
                                                 {% set slot_dt_str = slot.date.strftime('%Y-%m-%d') ~ ' ' ~ slot.start_time.strftime('%H:%M') %}
-                                                {% set is_expired = not active_app and slot_dt_str < now.strftime('%Y-%m-%d %H:%M') %}
+
+                                                {% set archived_app = None %}
+                                                {% if not active_app %}
+                                                    {% for ar in all_archived %}
+                                                        {% if ar.original_id == slot.id %}
+                                                            {% set archived_app = ar %}
+                                                        {% endif %}
+                                                    {% endfor %}
+                                                {% endif %}
 
                                                 <div id="slot-{{ slot.id }}" class="p-2 rounded text-center slot-card 
                                                     {% if active_app %}
                                                         {% if active_app.status == 'підтверджено' %}slot-confirmed
                                                         {% elif active_app.status == 'відхилено' %}slot-rejected
                                                         {% else %}slot-waiting{% endif %}
-                                                    {% elif is_expired %}
+                                                    {% elif archived_app %}
+                                                        slot-rejected
+                                                    {% elif slot_dt_str < now.strftime('%Y-%m-%d %H:%M') %}
                                                         slot-expired
                                                     {% else %}
                                                         slot-free
                                                     {% endif %}"
-                                                    onclick="openInfo(`{{ slot.start_time.strftime('%H:%M') }}`, `{{ d_curr_obj.strftime('%d.%m.%Y') }}`, `{{ active_app.client.name if active_app else '' }}`, `{{ active_app.service.name if active_app else '' }}`, `{{ active_app.status if active_app else '' }}`, `{{ active_app.id if active_app else '' }}`, `{{ active_app.client.email if active_app else '' }}`, {{ 'true' if is_expired else 'false' }},`{{ active_app.client.phone if active_app else '' }}`)">
+                                                    onclick="openInfo('{{ slot.start_time.strftime('%H:%M') }}', '{{ slot.date.strftime('%d.%m.%Y') }}', '{{ active_app.client.name if active_app else (archived_app.client_name if archived_app else '') }}', '{{ active_app.service.name if active_app else (archived_app.service_name if archived_app else '') }}', '{{ active_app.status if active_app else (archived_app.status if archived_app else '') }}', '{{ active_app.id if active_app else '' }}', '{{ active_app.client.email if active_app else (archived_app.client_email if archived_app else '') }}', {{ 'true' if slot_dt_str < now.strftime('%Y-%m-%d %H:%M') else 'false' }}, '{{ active_app.client.phone if active_app else (archived_app.client_phone if archived_app else '') }}')">
                                                     {{ slot.start_time.strftime('%H:%M') }}
                                                 </div>
                                             {% endfor %}
@@ -551,5 +558,14 @@ function openInfo(time, date, client, service, status, appId, email, isExpired, 
     
     new bootstrap.Modal(document.getElementById('infoModal')).show();
 }
+
+document.addEventListener('DOMContentLoaded', function() {
+    if (typeof checkNotifications === 'function') {
+        checkNotifications();
+    }
+});
+
+setInterval(updateNotifications, 30000);
+document.addEventListener('DOMContentLoaded', updateNotifications);
 </script>
 {% endblock %}
