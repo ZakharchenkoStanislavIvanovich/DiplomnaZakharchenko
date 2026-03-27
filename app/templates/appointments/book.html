@@ -1,61 +1,153 @@
 {% extends "base.html" %}
 
-{% block title %}Запис на прийом{% endblock %}
+{% block title %}Запис на візит{% endblock %}
 
 {% block content %}
 
 <style>
-  body {
-      overflow: auto;
-      min-height: 100vh;
-  }
+    body {
+        overflow: auto;
+        min-height: 100vh;
+    }
 
-  #infoButton {
-      background-color: #343a40 !important;
-      color: white !important;
-      padding: 8px 20px;
-      border-radius: 10px;
-      text-decoration: none;
-      font-weight: 500;
-      border: none !important;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      transition: background-color 0.3s ease !important; 
-  }
+    #privacyCheck:checked {
+        background-color: #556b2f !important;
+        border-color: #556b2f !important;
+    }
 
-  #infoButton:hover:not([style*="pointer-events: none"]) {
-      background-color: #23272b !important;
-      transform: none !important;
-  }
+    #privacyCheck:focus {
+        border-color: #556b2f !important;
+        box-shadow: 0 0 0 0.25rem rgba(85, 107, 47, 0.25) !important;
+    }
 
-  .btn-primary, #submitButton {
-      background-color: #343a40 !important;
-      border-color: #343a40 !important;
-      color: white !important;
-      border-radius: 10px;
-      padding: 10px 25px;
-      transition: background-color 0.3s ease !important;
-  }
+    .form-check-label {
+        cursor: pointer;
+    }
 
-  .btn-primary:hover, #submitButton:hover {
-      background-color: #23272b !important;
-      border-color: #23272b !important;
-      transform: none !important;
-      box-shadow: none !important;
-  }
+    #infoButton {
+        background-color: #343a40 !important;
+        color: white !important;
+        padding: 0 15px;
+        border-radius: 10px;
+        text-decoration: none;
+        font-weight: 500;
+        border: none !important;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        transition: background-color 0.3s ease !important;
+        height: 40px;
+    }
 
-  #time_id:disabled {
-      background-color: white !important;
-      color: #6c757d;
-      cursor: default;
-  }
+    #infoButton:hover:not([style*="pointer-events: none"]) {
+        background-color: #23272b !important;
+    }
+
+    .btn-primary, #submitButton {
+        background-color: #343a40 !important;
+        border-color: #343a40 !important;
+        color: white !important;
+        border-radius: 10px;
+        padding: 10px 25px;
+        transition: background-color 0.3s ease !important;
+    }
+
+    .btn-primary:hover, #submitButton:hover {
+        background-color: #23272b !important;
+        border-color: #23272b !important;
+    }
+
+    .custom-container {
+        position: relative;
+        flex-grow: 1;
+    }
+
+    #service_select, #time_id {
+        display: none;
+    }
+
+    .custom-select-trigger {
+        padding: 8px 15px;
+        border: 1px solid #ced4da;
+        border-radius: 10px;
+        background: #fff;
+        cursor: pointer;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        height: 40px;
+        transition: border-color 0.2s;
+        color: #6c757d;
+    }
+
+    .custom-select-trigger.disabled {
+        background-color: #fff;
+        color: #6c757d;
+        cursor: default;
+        pointer-events: none;
+    }
+
+    .custom-arrow {
+        width: 10px;
+        height: 10px;
+        border-right: 2px solid #6c757d;
+        border-bottom: 2px solid #6c757d;
+        transform: rotate(45deg);
+        margin-top: -4px;
+        transition: transform 0.3s ease;
+    }
+
+    .custom-select-trigger.active .custom-arrow {
+        transform: rotate(-135deg);
+        margin-top: 4px;
+    }
+
+    .custom-options {
+        position: absolute;
+        top: 100%;
+        left: 0;
+        right: 0;
+        display: none;
+        overflow-y: auto;
+        max-height: 250px;
+        border: 1px solid #ced4da;
+        border-radius: 10px;
+        margin-top: 5px;
+        background: #fff;
+        z-index: 1000;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+
+    .custom-options.show {
+        display: block;
+    }
+
+    .custom-option {
+        padding: 10px 15px;
+        cursor: pointer;
+        border-bottom: 1px solid #eee;
+        transition: background 0.2s;
+    }
+
+    .custom-option:last-child {
+        border-bottom: none;
+    }
+
+    .custom-option:hover {
+        background-color: #f8f9fa;
+    }
+
+    .service-wrapper {
+        display: flex;
+        gap: 10px;
+        align-items: flex-start;
+    }
 </style>
 
 <div style="display: flex; flex-wrap: wrap; gap: 30px; max-width: 95%; margin: 50px 3%;">
 
     <div style="flex: 1 1 600px; min-width: 300px; color: #343a40;">
-        <h2 style="color: #343a40; font-weight: 700; margin-bottom: 30px;">Подання заявки на прийом</h2>
+        <h2 style="color: #343a40; font-weight: 700; margin-bottom: 30px;">Подання заявки на візит</h2>
 
         <form id="appointmentForm" method="POST">
             {{ form.hidden_tag() }}
@@ -86,14 +178,20 @@
 
             <div class="mb-3">
                 {{ form.service_id.label(class="form-label") }}
-                <div class="d-flex gap-2">
-                    {{ form.service_id(class="form-select", id="service_select") }}
+                <div class="service-wrapper">
+                    <div class="custom-container">
+                        {{ form.service_id(id="service_select") }}
+                        <div class="custom-select-trigger" id="service_trigger">
+                            <span>Натисніть, щоб обрати послугу зі списку</span>
+                            <div class="custom-arrow"></div>
+                        </div>
+                        <div class="custom-options" id="service_options"></div>
+                    </div>
                     
                     <a id="infoButton" href="{{ url_for('main.services_list') }}" 
-                    class="nav-btn d-flex align-items-center justify-content-center" 
-                    title="Детальніше про послугу" 
-                    style="white-space: nowrap; margin: 0; opacity: 0.5; pointer-events: none; font-size: 0.9rem;">
-                    Про послугу
+                       title="Детальніше про послугу" 
+                       style="white-space: nowrap; opacity: 0.5; pointer-events: none; font-size: 0.9rem;">
+                        Про послугу
                     </a>
                 </div>
             </div>
@@ -109,7 +207,14 @@
 
             <div class="mb-3">
                 {{ form.time_id.label(class="form-label") }}
-                {{ form.time_id(class="form-select", id="time_id") }}
+                <div class="custom-container">
+                    {{ form.time_id(id="time_id") }}
+                    <div class="custom-select-trigger disabled" id="time_trigger">
+                        <span>Спочатку оберіть дату</span>
+                        <div class="custom-arrow"></div>
+                    </div>
+                    <div class="custom-options" id="time_options"></div>
+                </div>
                 {% for error in form.time_id.errors %}
                 <div class="text-danger small">{{ error }}</div>
                 {% endfor %}
@@ -120,106 +225,48 @@
     </div>
 
     <div style="flex: 1 1 400px; min-width: 300px; border: 2px solid #343a40; border-radius: 15px; 
-                padding: 20px; display: flex; flex-direction: column; max-height: 535px;">
+                padding: 20px; display: flex; flex-direction: column; max-height: 535px; background: #fff; box-sizing: border-box;">
+    
         <h3 style="font-weight: 700; margin-bottom: 15px;">Політика конфіденційності</h3>
 
-        <div style="flex: 1; overflow-y: auto; padding-right: 10px; margin-bottom: 15px;">
-            <p><strong>Про нотаріуса:</strong> Цей сайт належить приватному нотаріусу у м. Івано-Франківськ. Ми дбаємо про захист персональних даних та конфіденційність користувачів. Використовуючи сайт, ви погоджуєтесь із цією політикою.</p>
+        <div style="flex: 1; overflow-y: auto; padding-right: 10px; margin-bottom: 10px;">
+            <p>Про нотаріуса: Цей сайт належить приватному нотаріусу Івано-Франківського міського нотаріального округу. Обробка персональних даних здійснюється відповідно до 
+                <a href="https://zakon.rada.gov.ua/laws/show/2297-17#Text" target="_blank" style="color: inherit; text-decoration: underline;">Закону України «Про захист персональних даних»</a> 
+                та <a href="https://zakon.rada.gov.ua/laws/show/3425-12#Text" target="_blank" style="color: inherit; text-decoration: underline;">Закону України «Про нотаріат»</a>.
+            </p>
 
-            <h4>1. Загальні положення</h4>
-            <ol>
-                <li>Ця політика визначає, як обробляються та захищаються ваші персональні дані.</li>
-                <li>Всі дані збираються виключно для забезпечення надання нотаріальних послуг.</li>
-                <li>Ми дотримуємось вимог чинного законодавства України щодо захисту персональних даних.</li>
-            </ol>
+            <h4 style="font-weight: 700; margin-top: 20px;">1. Загальні положення</h4>
+            <p>Власником персональних даних є приватний нотаріус. Ми гарантуємо повну нотаріальну таємницю щодо будь-якої інформації, отриманої під час підготовки до вчинення нотаріальних дій, та забезпечуємо високий рівень захисту наданих вами відомостей.</p>
 
-            <h4>2. Збір персональних даних</h4>
-            <ol>
-                <li>Ми можемо збирати такі дані:
-                    <ul>
-                        <li>ПІБ користувача</li>
-                        <li>Контактний телефон</li>
-                        <li>Email</li>
-                        <li>Вибрані послуги та дата/час запису</li>
-                    </ul>
-                </li>
-                <li>Дані збираються тільки при заповненні форм на сайті або у процесі спілкування з нотаріусом.</li>
-            </ol>
+            <h4 style="font-weight: 700; margin-top: 20px;">2. Перелік даних, що збираються</h4>
+            <p style="margin-bottom: 5px;">- прізвище, ім'я та по батькові клієнта;</p>
+            <p style="margin-bottom: 5px;">- контактний номер телефону та адреса електронної пошти;</p>
+            <p>- короткий опис суті звернення (за бажанням клієнта).</p>
 
-            <h4>3. Використання персональних даних</h4>
-            <ol>
-                <li>Персональні дані використовуються виключно для:
-                    <ul>
-                        <li>Обробки заявки на прийом</li>
-                        <li>Зв’язку з користувачем</li>
-                        <li>Інформування про послуги та зміни у графіку</li>
-                    </ul>
-                </li>
-                <li>Ми не передаємо дані третім особам без вашої згоди, крім випадків, передбачених законодавством.</li>
-            </ol>
+            <h4 style="font-weight: 700; margin-top: 20px;">3. Мета використання даних</h4>
+            <p>Персональні дані використовуються виключно для організації попередньої консультації, бронювання часу візиту та підготовки проектів документів. Ми не передаємо ваші контакти третім особам у комерційних цілях.</p>
 
-            <h4>4. Захист персональних даних</h4>
-            <ol>
-                <li>Ми використовуємо сучасні технології для захисту інформації від несанкціонованого доступу.</li>
-                <li>Всі дані зберігаються на безпечних серверах із обмеженим доступом.</li>
-                <li>У разі виявлення порушень безпеки ми вживатимемо необхідних заходів та повідомимо користувачів.</li>
-            </ol>
+            <h4 style="font-weight: 700; margin-top: 20px;">4. Нотаріальна таємниця</h4>
+            <p>Відомості про нотаріальні дії та інформація, отримана від клієнта, є конфіденційними. Розкриття такої інформації можливе лише у випадках, що прямо передбачені статтею 8 Закону України «Про нотаріат».</p>
 
-            <h4>5. Передача даних третім особам</h4>
-            <ol>
-                <li>Дані можуть передаватися лише:
-                    <ul>
-                        <li>у випадках, передбачених законодавством України</li>
-                        <li>для забезпечення виконання нотаріальних послуг (за необхідності)</li>
-                    </ul>
-                </li>
-                <li>В інших випадках ми не передаємо ваші дані без вашої згоди.</li>
-            </ol>
+            <h4 style="font-weight: 700; margin-top: 20px;">5. Термін зберігання</h4>
+            <p>Контактні відомості видаляються після надання консультації. Документи, що стали основою для вчинення дій, зберігаються в архіві згідно зі встановленими державою строками нотаріального діловодства.</p>
 
-            <h4>6. Збереження даних</h4>
-            <ol>
-                <li>Дані зберігаються лише стільки, скільки необхідно для обробки заявки або надання послуги.</li>
-                <li>Ви маєте право вимагати видалення ваших персональних даних у будь-який час.</li>
-            </ol>
+            <h4 style="font-weight: 700; margin-top: 20px;">6. Права користувача</h4>
+            <p>Ви маєте право знати про місцезнаходження своїх даних, вимагати їх виправлення або видалення (якщо це не суперечить вимогам законодавства про формування нотаріального архіву).</p>
 
-            <h4>7. Права користувачів</h4>
-            <ol>
-                <li>Користувач має право:
-                    <ul>
-                        <li>Отримати інформацію про обробку своїх даних</li>
-                        <li>Виправити неточні дані</li>
-                        <li>Вимагати видалення або блокування даних</li>
-                    </ul>
-                </li>
-                <li>Для реалізації прав користувач може звертатися до нотаріуса через контактні дані на сайті.</li>
-            </ol>
+            <h4 style="font-weight: 700; margin-top: 20px;">7. Захист та безпека</h4>
+            <p>Сайт використовує захищене шифроване з'єднання (SSL). Всі дані зберігаються в електронному середовищі з обмеженим рівнем доступу.</p>
 
-            <h4>8. Файли cookie</h4>
-            <ol>
-                <li>Сайт може використовувати cookie для зручності користування та аналітики.</li>
-                <li>Ви можете відмовитися від cookie у налаштуваннях браузера.</li>
-            </ol>
+            <h4 style="font-weight: 700; margin-top: 20px;">8. Контакти для запитів:</h4>
+            <p style="margin-top: 10px; margin-bottom: 5px;">Адреса: вул. Шевченка, 57, м. Івано-Франківськ</p>
+            <p style="margin-bottom: 5px;">Телефон: +380-67-123-45-67</p>
+            <p class="mb-0">Email: tviy.notarius@gmail.com</p>
+        </div> 
 
-            <h4>9. Зміни політики конфіденційності</h4>
-            <ol>
-                <li>Нотаріус залишає за собою право змінювати політику конфіденційності.</li>
-                <li>Оновлена політика публікується на сайті, і продовження використання сайту означає вашу згоду із змінами.</li>
-            </ol>
-
-            <h4>10. Контакти для запитів</h4>
-            <ol>
-                <li>Для будь-яких питань щодо політики конфіденційності можна звертатися:
-                    <ul>
-                        <li>Телефон: +380-67-123-45-67</li>
-                        <li>Email: tviy.notarius@gmail.com</li>
-                    </ul>
-                </li>
-            </ol>
-        </div>
-
-        <div class="form-check">
+        <div class="form-check" style="margin-top: 0;">
             <input class="form-check-input" type="checkbox" id="privacyCheck">
-            <label class="form-check-label" for="privacyCheck">
+            <label class="form-check-label" for="privacyCheck" style="margin-bottom: 0;">
                 Я погоджуюся з політикою конфіденційності
             </label>
             <div id="privacyError" class="text-danger small" style="display:none;">Ви повинні погодитися з політикою конфіденційності.</div>
@@ -231,102 +278,121 @@
 document.addEventListener("DOMContentLoaded", function () {
     const form = document.getElementById("appointmentForm");
     const dateInput = document.getElementById("date");
-    const timeSelect = document.getElementById("time_id");
     const serviceSelect = document.getElementById("service_select");
+    const timeSelect = document.getElementById("time_id");
+    
+    const serviceTrigger = document.getElementById("service_trigger");
+    const serviceOptions = document.getElementById("service_options");
+    const timeTrigger = document.getElementById("time_trigger");
+    const timeOptions = document.getElementById("time_options");
+    
     const infoButton = document.getElementById("infoButton");
     const privacyCheck = document.getElementById("privacyCheck");
     const privacyError = document.getElementById("privacyError");
     const weekendError = document.getElementById("weekendError");
 
-    const today = new Date().toISOString().split('T')[0];
-    dateInput.setAttribute('min', today);
+    function toggleList(trigger, optionsContainer) {
+        const isActive = optionsContainer.classList.contains("show");
+        document.querySelectorAll('.custom-options').forEach(el => el.classList.remove("show"));
+        document.querySelectorAll('.custom-select-trigger').forEach(el => el.classList.remove("active"));
 
-    function setInitialTimeState() {
-        timeSelect.innerHTML = '<option value="" disabled selected>Спочатку оберіть дату</option>';
-        timeSelect.disabled = true;
-        timeSelect.style.backgroundColor = "white";
-        timeSelect.style.color = "#6c757d";
+        if (!isActive) {
+            optionsContainer.classList.add("show");
+            trigger.classList.add("active");
+        }
     }
 
-    function updateInfoLink() {
-        const serviceId = serviceSelect.value;
-        if (serviceId) {
-            infoButton.href = `/services#service-${serviceId}`;
+    function buildServiceList() {
+        const options = Array.from(serviceSelect.options).filter(opt => opt.value !== "" && opt.value !== "0");
+        serviceOptions.innerHTML = "";
+        options.forEach((opt, index) => {
+            const div = document.createElement("div");
+            div.className = "custom-option";
+            const label = `${index + 1}. ${opt.textContent}`;
+            div.textContent = label;
+            div.onclick = function() {
+                serviceSelect.value = opt.value;
+                serviceTrigger.querySelector("span").textContent = label;
+                toggleList(serviceTrigger, serviceOptions);
+                updateInfoLink(opt.value);
+            };
+            serviceOptions.appendChild(div);
+        });
+    }
+
+    serviceTrigger.onclick = (e) => { e.stopPropagation(); toggleList(serviceTrigger, serviceOptions); };
+
+    function updateInfoLink(val) {
+        if (val) {
+            infoButton.href = `/services#service-${val}`;
             infoButton.style.opacity = "1";
             infoButton.style.pointerEvents = "auto";
         } else {
-            infoButton.href = "{{ url_for('main.services_list') }}";
             infoButton.style.opacity = "0.5";
             infoButton.style.pointerEvents = "none";
         }
     }
 
     function loadTimesFor(dateStr) {
-        timeSelect.innerHTML = '<option value="">Завантаження...</option>';
-        timeSelect.disabled = true;
+        timeTrigger.querySelector("span").textContent = "Завантаження...";
+        timeTrigger.classList.add("disabled");
         
         fetch(`/appointments/available_times?date=${dateStr}`)
             .then(response => response.json())
             .then(times => {
-                if (!times || times.length === 0) {
-                    timeSelect.innerHTML = '<option value="" disabled selected>Немає вільних годин</option>';
-                } else {
-                    timeSelect.innerHTML = '<option value="" disabled selected>Оберіть час</option>';
+                timeOptions.innerHTML = "";
+                if (times && times.length > 0) {
+                    timeTrigger.querySelector("span").textContent = "Оберіть час візиту";
+                    timeTrigger.classList.remove("disabled");
                     times.forEach(t => {
-                        const option = document.createElement("option");
-                        option.value = t.id;
-                        option.textContent = t.display;
-                        timeSelect.appendChild(option);
+                        const div = document.createElement("div");
+                        div.className = "custom-option";
+                        div.textContent = t.display;
+                        div.onclick = function() {
+                            timeSelect.value = t.id;
+                            timeTrigger.querySelector("span").textContent = t.display;
+                            toggleList(timeTrigger, timeOptions);
+                        };
+                        timeOptions.appendChild(div);
                     });
-                    timeSelect.disabled = false;
-                    timeSelect.style.color = "#343a40";
+                } else {
+                    timeTrigger.querySelector("span").textContent = "Немає вільних годин";
                 }
-            })
-            .catch(() => {
-                timeSelect.innerHTML = '<option value="" disabled>Помилка завантаження</option>';
             });
     }
 
+    timeTrigger.onclick = (e) => { e.stopPropagation(); if (!timeTrigger.classList.contains("disabled")) toggleList(timeTrigger, timeOptions); };
+
+    const today = new Date().toISOString().split('T')[0];
+    dateInput.setAttribute('min', today);
     dateInput.addEventListener("change", function () {
-        const date = new Date(this.value);
-        const day = date.getUTCDay();
-        
+        const day = new Date(this.value).getUTCDay();
+        timeSelect.value = "";
+        timeTrigger.querySelector("span").textContent = "Спочатку оберіть дату";
+        timeTrigger.classList.add("disabled");
         if (day === 0 || day === 6) {
-            this.value = "";
-            weekendError.style.display = "block";
-            setInitialTimeState();
+            this.value = ""; weekendError.style.display = "block";
         } else {
             weekendError.style.display = "none";
-            if (this.value) {
-                loadTimesFor(this.value);
-            } else {
-                setInitialTimeState();
-            }
+            if (this.value) loadTimesFor(this.value);
         }
     });
 
-    form.addEventListener("submit", function (event) {
+    document.addEventListener("click", () => {
+        document.querySelectorAll('.custom-options').forEach(el => el.classList.remove("show"));
+        document.querySelectorAll('.custom-select-trigger').forEach(el => el.classList.remove("active"));
+    });
+
+    form.addEventListener("submit", function (e) {
         if (!privacyCheck.checked) {
-            event.preventDefault();
-            privacyError.style.display = "block";
+            e.preventDefault(); privacyError.style.display = "block";
             privacyCheck.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        } else {
-            privacyError.style.display = "none";
         }
     });
 
-    privacyCheck.addEventListener("change", function() {
-        if (this.checked) privacyError.style.display = "none";
-    });
+    privacyCheck.addEventListener("change", function() { if (this.checked) privacyError.style.display = "none"; });
 
-    serviceSelect.addEventListener("change", updateInfoLink);
-    updateInfoLink();
-
-    if (dateInput.value) {
-        loadTimesFor(dateInput.value);
-    } else {
-        setInitialTimeState();
-    }
+    buildServiceList();
 });
 </script>
 {% endblock %}

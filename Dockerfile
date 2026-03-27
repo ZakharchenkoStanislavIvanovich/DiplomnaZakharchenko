@@ -14,7 +14,10 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . .
 
-RUN mkdir -p /usr/local/app/instance && chown -R 1000:1000 /usr/local/app/instance
+RUN mkdir -p /usr/local/app/app/static/uploads && \
+    mkdir -p /usr/local/app/instance && \
+    chown -R 1000:1000 /usr/local/app/app/static/uploads && \
+    chown -R 1000:1000 /usr/local/app/instance
 
 RUN useradd -u 1000 app
 USER app

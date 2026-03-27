@@ -1,5 +1,7 @@
 {% extends "base.html" %}
 
+{% block title %}Кабінет нотаріуса{% endblock %}
+
 {% block extra_css %}
     <link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard.css') }}?v={{ range(1, 9999) | random }}">
 {% endblock %}
