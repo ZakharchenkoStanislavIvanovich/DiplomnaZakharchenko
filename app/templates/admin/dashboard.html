@@ -134,81 +134,156 @@
             </div>
 
             <div class="tab-pane fade" id="tab-calendar">
-                <h5>Візуальний розклад (Пн-Пт)</h5>
-                <div class="accordion mt-4" id="calendarAccordion">
-                    {% set weeks = [] %}
-                    {% for date_key, slots in calendar_data.items() %}
-                        {% set d_obj = slots[0].date %}
-                        {% set monday = d_obj - relativedelta(days=d_obj.weekday()) %}
-                        {% if monday not in weeks %}
-                            {% set _ = weeks.append(monday) %}
-                        {% endif %}
-                    {% endfor %}
+                <div class="row">
+                    <div class="col-lg-8 border-end">
+                        <h5>Візуальний розклад (Пн-Пт)</h5>
+                        <div class="accordion mt-4" id="calendarAccordion">
+                            {% set weeks = [] %}
+                            {% for date_key, slots in calendar_data.items() %}
+                                {% set d_obj = slots[0].date %}
+                                {% set monday = d_obj - relativedelta(days=d_obj.weekday()) %}
+                                {% if monday not in weeks %}{% set _ = weeks.append(monday) %}{% endif %}
+                            {% endfor %}
 
-                    {% for monday in weeks|sort %}
-                    <div class="accordion-item" id="cal-week-container-{{ monday.strftime('%Y-%m-%d') }}">
-                        <h2 class="accordion-header">
-                            <button class="accordion-button collapsed fw-bold" type="button" data-bs-toggle="collapse" data-bs-target="#calWeek{{ loop.index }}">
-                                Тиждень: {{ monday.strftime('%d.%m') }} — {{ (monday + relativedelta(days=4)).strftime('%d.%m') }}
-                            </button>
-                        </h2>
-                        <div id="calWeek{{ loop.index }}" class="accordion-collapse collapse">
-                            <div class="accordion-body p-0">
-                                {% for d_offset in range(5) %}
-                                    {% set d_curr_obj = monday + relativedelta(days=d_offset) %}
-                                    {% set d_key = d_curr_obj.strftime('%Y-%m-%d') %}
-                                    {% set d_slots = calendar_data.get(d_key, []) %}
-                                    {% if d_slots %}
-                                    <div class="p-3 border-bottom d-flex align-items-center bg-white">
-                                        <div style="width: 200px;" class="fw-bold text-olive small">{{ d_curr_obj.strftime('%d.%m') }}, {{ days_full.get(d_curr_obj.strftime('%A'), '') }}</div>
-                                        <div class="d-flex flex-wrap gap-2">
-                                            {% for slot in d_slots|sort(attribute='start_time') %}
-                                                {% set active_app = slot.appointments[0] if slot.appointments else None %}
-                                                
-                                                {% set arch_app = archived_map.get(slot.id|string) %}
+                            {% for monday in weeks|sort %}
+                            <div class="accordion-item" id="cal-week-container-{{ monday.strftime('%Y-%m-%d') }}">
+                                <h2 class="accordion-header">
+                                    <button class="accordion-button collapsed fw-bold" type="button" data-bs-toggle="collapse" data-bs-target="#calWeek{{ loop.index }}">
+                                        Тиждень: {{ monday.strftime('%d.%m') }} — {{ (monday + relativedelta(days=4)).strftime('%d.%m') }}
+                                    </button>
+                                </h2>
+                                <div id="calWeek{{ loop.index }}" class="accordion-collapse collapse">
+                                    <div class="accordion-body p-0">
+                                        {% for d_offset in range(5) %}
+                                            {% set d_curr_obj = monday + relativedelta(days=d_offset) %}
+                                            {% set d_key = d_curr_obj.strftime('%Y-%m-%d') %}
+                                            {% set d_day_slots = calendar_data.get(d_key, []) %}
+                                            {% if d_day_slots %}
+                                            <div class="p-3 border-bottom d-flex align-items-center bg-white">
+                                                <div style="width: 200px;" class="fw-bold text-olive small">{{ d_curr_obj.strftime('%d.%m') }}, {{ days_full.get(d_curr_obj.strftime('%A'), '') }}</div>
+                                                <div class="d-flex flex-wrap gap-2">
+                                                    {% for slot in d_day_slots|sort(attribute='start_time') %}
+                                                        {% set active_app = slot.appointments[0] if slot.appointments else None %}
+                                                        {% set arch_app = archived_map.get(slot.id|string) %}
+                                                        {% set slot_dt_str = slot.date.strftime('%Y-%m-%d') ~ ' ' ~ slot.start_time.strftime('%H:%M') %}
+                                                        {% set is_past = slot_dt_str < now.strftime('%Y-%m-%d %H:%M') %}
 
-                                                {% set slot_dt_str = slot.date.strftime('%Y-%m-%d') ~ ' ' ~ slot.start_time.strftime('%H:%M') %}
-                                                {% set is_past = slot_dt_str < now.strftime('%Y-%m-%d %H:%M') %}
-
-                                                <div id="slot-{{ slot.id }}" class="p-2 rounded text-center slot-card 
-                                                    {% if active_app %}
-                                                        {% if active_app.status == 'підтверджено' %}slot-confirmed
-                                                        {% elif active_app.status == 'відхилено' %}slot-rejected
-                                                        {% else %}slot-waiting{% endif %}
-                                                    {% elif arch_app and is_past %}
-                                                        {% if arch_app.status == 'підтверджено' %}slot-confirmed
-                                                        {% elif arch_app.status == 'відхилено' %}slot-rejected
-                                                        {% else %}slot-waiting{% endif %}
-                                                    {% elif is_past %}
-                                                        slot-expired
-                                                    {% else %}
-                                                        slot-free
-                                                    {% endif %}"
-                                                    onclick="openInfo('{{ slot.start_time.strftime('%H:%M') }}', 
-                                                                    '{{ slot.date.strftime('%d.%m.%Y') }}', 
-                                                                    '{{ (active_app.client.name if active_app else (arch_app.client_name if (arch_app and is_past) else ''))|replace("'", "\\'") }}', 
-                                                                    '{{ (active_app.service.name if active_app else (arch_app.service_name if (arch_app and is_past) else ''))|replace("'", "\\'") }}', 
-                                                                    '{{ (active_app.status if active_app else (arch_app.status if (arch_app and is_past) else '')) }}', 
-                                                                    '{{ active_app.id if active_app else '' }}', 
-                                                                    '{{ (active_app.client.email if active_app else (arch_app.client_email if (arch_app and is_past) else '')) }}', 
-                                                                    {{ 'true' if (is_past and not active_app and not (arch_app and is_past)) else 'false' }}, 
-                                                                    '{{ (active_app.client.phone if active_app else (arch_app.client_phone if (arch_app and is_past) else '')) }}')">
-                                                    
-                                                    {{ slot.start_time.strftime('%H:%M') }}
-                                                    
-                                                    {% if arch_app and is_past and not active_app %}
-                                                        <div style="font-size:7px; color:black; font-weight:bold; line-height:1;">АРХІВ</div>
-                                                    {% endif %}
+                                                        <div id="slot-{{ slot.id }}" class="p-2 rounded text-center slot-card 
+                                                            {% if active_app %}
+                                                                {% if active_app.status == 'підтверджено' %}slot-confirmed
+                                                                {% elif active_app.status == 'відхилено' %}slot-rejected
+                                                                {% else %}slot-waiting{% endif %}
+                                                            {% elif arch_app and is_past %}
+                                                                {% if arch_app.status == 'підтверджено' %}slot-confirmed
+                                                                {% elif arch_app.status == 'відхилено' %}slot-rejected
+                                                                {% else %}slot-waiting{% endif %}
+                                                            {% elif is_past %}slot-expired{% else %}slot-free{% endif %}"
+                                                            onclick="openInfo('{{ slot.start_time.strftime('%H:%M') }}', '{{ slot.date.strftime('%d.%m.%Y') }}', '{{ (active_app.client.name if active_app else (arch_app.client_name if (arch_app and is_past) else ''))|replace("'", "\\'") }}', '{{ (active_app.service.name if active_app else (arch_app.service_name if (arch_app and is_past) else ''))|replace("'", "\\'") }}', '{{ (active_app.status if active_app else (arch_app.status if (arch_app and is_past) else '')) }}', '{{ active_app.id if active_app else '' }}', '{{ (active_app.client.email if active_app else (arch_app.client_email if (arch_app and is_past) else '')) }}', {{ 'true' if (is_past and not active_app and not (arch_app and is_past)) else 'false' }}, '{{ (active_app.client.phone if active_app else (arch_app.client_phone if (arch_app and is_past) else '')) }}')">
+                                                            {{ slot.start_time.strftime('%H:%M') }}
+                                                            {% if arch_app and is_past and not active_app %}<div style="font-size:7px; color:black; font-weight:bold; line-height:1;">АРХІВ</div>{% endif %}
+                                                        </div>
+                                                    {% endfor %}
                                                 </div>
-                                            {% endfor %}
+                                            </div>
+                                            {% endif %}
+                                        {% endfor %}
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+
+                    <div class="col-lg-4">
+                                <div style="position: sticky; top: 20px;">
+                                    
+                                    <h6 class="fw-bold mb-3 border-bottom pb-2 text-dark small uppercase">
+                                        Список заявок (По ім. клієнтів)
+                                    </h6>
+                                    <div class="mb-3">
+                                        <div class="d-flex align-items-center justify-content-between" style="gap: 10px;">
+                                            <input type="text" id="clientSearchInput" 
+                                                class="form-control form-control-sm shadow-sm" 
+                                                placeholder="Введіть ім'я клієнта" 
+                                                style="border-radius: 4px !important; flex: 1;">
+                                            
+                                            <button class="btn btn-dark-grey btn-sm shadow-sm" 
+                                                    type="button" 
+                                                    onclick="searchClient()" 
+                                                    style="border-radius: 4px !important; white-space: nowrap; padding-left: 15px; padding-right: 15px;">
+                                                Пошук
+                                            </button>
+                                        </div>
+                                        <div id="searchError" class="text-danger small mt-1" style="display: none; font-size: 0.8rem;">
+                                            Клієнта з таким ім'ям не знайдено
                                         </div>
                                     </div>
-                                    {% endif %}
+
+                            <div class="accordion shadow-sm" id="searchAccordionRight">
+                                {% for monday in weeks|sort %}
+                                <div class="accordion-item mb-2" style="border-radius: 8px !important; overflow: hidden; border: 1px solid #dee2e6;">
+                                    <h2 class="accordion-header">
+                                        <button class="accordion-button collapsed p-3 fw-bold" 
+                                                type="button" 
+                                                data-bs-toggle="collapse" 
+                                                data-bs-target="#searchWeekCol{{ loop.index }}"
+                                                style="font-size: 0.85rem; background-color: #f8f9fa;">
+                                            Тиждень: {{ monday.strftime('%d.%m') }} — {{ (monday + relativedelta(days=4)).strftime('%d.%m') }}
+                                        </button>
+                                    </h2>
+                                    <div id="searchWeekCol{{ loop.index }}" class="accordion-collapse collapse" data-bs-parent="#searchAccordionRight">
+                                        <div class="accordion-body p-0 bg-white">
+                                            <div class="list-group list-group-flush">
+                                            {% for d_offset in range(5) %}
+                                                {% set d_curr = monday + relativedelta(days=d_offset) %}
+                                                {% set d_key = d_curr.strftime('%Y-%m-%d') %}
+                                                
+                                                {% for slot in calendar_data.get(d_key, [])|sort(attribute='start_time') %}
+                                                    {% set app = slot.appointments[0] if slot.appointments else None %}
+                                                    {% set arch_app = archived_map.get(slot.id|string) %}
+                                                    {% set slot_dt_str = slot.date.strftime('%Y-%m-%d') ~ ' ' ~ slot.start_time.strftime('%H:%M') %}
+                                                    {% set is_past = slot_dt_str < now.strftime('%Y-%m-%d %H:%M') %}
+                                                    
+                                                    {% if app or (arch_app and is_past) %}
+                                                        {% set c_name = app.client.name if app else arch_app.client_name %}
+                                                        <button class="list-group-item list-group-item-action px-3 py-2 border-bottom bg-transparent search-client-item" 
+                                                                onclick="goToCalendarSlot('{{ slot.id }}', '{{ monday.strftime('%Y-%m-%d') }}')"
+                                                                data-client-name="{{ c_name|lower }}"
+                                                                data-monday="{{ monday.strftime('%Y-%m-%d') }}"
+                                                                data-slot-id="{{ slot.id }}"
+                                                                style="border-left: none; border-right: none;">
+                                                            
+                                                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                                                <span class="small text-muted">{{ d_curr.strftime('%d.%m') }} <strong>{{ slot.start_time.strftime('%H:%M') }}</strong></span>
+                                                                
+                                                                {% if app %}
+                                                                    <span class="badge {% if app.status=='підтверджено' %}bg-success{% elif app.status=='відхилено' %}bg-danger{% else %}bg-warning text-dark{% endif %}" 
+                                                                        style="font-size: 0.6rem; text-transform: uppercase;">
+                                                                        {{ app.status }}
+                                                                    </span>
+                                                                {% else %}
+                                                                    <span class="badge bg-secondary" style="font-size: 0.6rem; text-transform: uppercase;">АРХІВ</span>
+                                                                {% endif %}
+                                                            </div>
+                                                            
+                                                            <div class="text-dark fw-bold small client-name-text">
+                                                                {{ c_name }}
+                                                            </div>
+                                                            <div class="small text-muted text-truncate" style="font-size: 0.75rem;">
+                                                                {{ app.service.name if app else arch_app.service_name }}
+                                                            </div>
+                                                        </button>
+                                                    {% endif %}
+                                                {% endfor %}
+                                            {% endfor %}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
                                 {% endfor %}
                             </div>
                         </div>
                     </div>
-                    {% endfor %}
                 </div>
             </div>
 
@@ -295,6 +370,13 @@
                                                 {% set slot_dt_check = slot.date.strftime('%Y-%m-%d') ~ ' ' ~ slot.start_time.strftime('%H:%M') %}
                                                 {% set is_past_check = slot_dt_check < now.strftime('%Y-%m-%d %H:%M') %}
 
+                                                {% set tooltip = "" %}
+                                                {% if app %}
+                                                    {% set tooltip = app.client.name ~ " | " ~ app.service.name %}
+                                                {% elif arch_app and is_past_check %}
+                                                    {% set tooltip = arch_app.client_name ~ " | " ~ arch_app.service_name ~ " (Архів)" %}
+                                                {% endif %}
+
                                                 <div class="badge border text-dark p-2 d-flex align-items-center gap-1 
                                                     {% if app %}
                                                         {% if app.status == 'підтверджено' %}slot-confirmed
@@ -307,7 +389,9 @@
                                                         slot-expired
                                                     {% else %}
                                                         bg-light
-                                                    {% endif %}">
+                                                    {% endif %}"
+                                                    {% if tooltip %} title="{{ tooltip }}" {% endif %} 
+                                                    style="cursor: {% if tooltip %}help{% else %}default{% endif %};">
                                                     
                                                     {% if not app %}
                                                         <input type="checkbox" class="bulk-delete-check" value="{{ slot.id }}">
@@ -535,15 +619,10 @@ async function bulkDelete() {
 
 function openInfo(time, date, client, service, status, appId, email, isExpired, phone) {
     let phoneDisplay = phone && phone !== 'None' ? phone : '---';
-    let isArchived = status === 'архівовано';
+    let isArchived = (client && appId === '');
     
     let b = `<div class="mb-3"><strong>Час:</strong> ${date} о ${time}</div>`;
     
-    if (isArchived) {
-        b += `<div class="alert alert-info py-2 small mb-3">
-                <i class="fas fa-archive me-2"></i>Ця заявка була перенесена в архів.
-              </div>`;
-    }
 
     if (client) {
         b += `<div class="p-3 border rounded bg-light">
@@ -568,10 +647,17 @@ function openInfo(time, date, client, service, status, appId, email, isExpired, 
     }
     
     document.getElementById('infoBody').innerHTML = b;
-    document.getElementById('infoFooter').innerHTML = (client && appId !== '' && !isArchived) ? 
-        `<button class="btn btn-dark-grey" onclick="goToApp('${appId}')">До списку заявок</button>` : 
-        `<button class="btn btn-secondary" data-bs-dismiss="modal">Закрити</button>`;
+
+    let footerHtml = '';
+    if (isArchived) {
+        footerHtml = `<a href="{{ url_for('admin.archive') }}" class="btn btn-outline-secondary">Перейти до архіву</a>`;
+    } else if (client && appId !== '') {
+        footerHtml = `<button class="btn btn-dark-grey" onclick="goToApp('${appId}')">До списку заявок</button>`;
+    } else {
+        footerHtml = `<button class="btn btn-secondary" data-bs-dismiss="modal">Закрити</button>`;
+    }
     
+    document.getElementById('infoFooter').innerHTML = footerHtml;
     new bootstrap.Modal(document.getElementById('infoModal')).show();
 }
 
@@ -583,5 +669,51 @@ document.addEventListener('DOMContentLoaded', function() {
 
 setInterval(updateNotifications, 30000);
 document.addEventListener('DOMContentLoaded', updateNotifications);
+
+function searchClient() {
+    const query = document.getElementById('clientSearchInput').value.toLowerCase().trim();
+    const errorBlock = document.getElementById('searchError');
+    
+    errorBlock.style.display = 'none';
+
+    if (!query) return;
+
+    let found = false;
+    const items = document.querySelectorAll('.search-client-item');
+
+    for (let item of items) {
+        const clientName = item.getAttribute('data-client-name');
+        if (clientName.includes(query)) {
+            const monday = item.getAttribute('data-monday');
+            const slotId = item.getAttribute('data-slot-id');
+
+            const rightCollapse = item.closest('.accordion-collapse');
+            if (rightCollapse) {
+                const bsCollapseRight = bootstrap.Collapse.getOrCreateInstance(rightCollapse);
+                bsCollapseRight.show();
+            }
+
+            goToCalendarSlot(slotId, monday);
+            
+            item.style.backgroundColor = '#fdfbbe';
+            setTimeout(() => { item.style.backgroundColor = 'transparent'; }, 2000);
+
+            found = true;
+            break; 
+        }
+    }
+
+    if (!found) {
+        errorBlock.style.display = 'block';
+        
+        setTimeout(() => {
+            errorBlock.style.display = 'none';
+        }, 5000);
+    }
+}
+
+document.getElementById('clientSearchInput')?.addEventListener('input', function() {
+    document.getElementById('searchError').style.display = 'none';
+});
 </script>
 {% endblock %}

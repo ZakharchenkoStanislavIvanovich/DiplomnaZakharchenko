@@ -257,31 +257,86 @@ def get_notifications():
     try:
         notifications = []
         now = datetime.now()
+        today_date = now.date()
         
-        # Витягуємо ВСІ заявки і фільтруємо в Python (найнадійніший метод для шифрованих полів)
+        cleanup_tasks()
         all_apps = Appointment.query.all()
-        pending_apps = [a for a in all_apps if a.status == 'очікує']
         
+        today_apps = [a for a in all_apps if a.slot.date == today_date and a.status == 'підтверджено']
+        if today_apps:
+            today_items = []
+            for a in today_apps:
+                monday = a.slot.date - timedelta(days=a.slot.date.weekday())
+                today_items.append({
+                    'id': f"today_{a.id}",
+                    'text': f"{a.slot.start_time.strftime('%H:%M')} - {a.client.name}",
+                    'time': a.slot.start_time.strftime('%H:%M'),
+                    'tab': 'calendar',
+                    'slot_id': a.slot.id,
+                    'monday_key': monday.strftime('%Y-%m-%d')
+                })
+            notifications.append({
+                'id': 'g_today',
+                'header': 'План на сьогодні',
+                'items': today_items
+            })
+
         new_items = []
         urgent_items = []
-        for a in pending_apps:
-            # Використовуємо розшифрований created_at
+        recommend_archive_items = []
+        pending_clients = {}
+
+        for a in all_apps:
+            slot_dt = datetime.combine(a.slot.date, a.slot.start_time)
             upd_time = a.created_at if a.created_at else now
-            diff = now - upd_time
-            hours_passed = int(diff.total_seconds() // 3600)
             
-            base_text = f"{a.client.name} | {a.service.name}"
-            item_data = {'id': f"app_{a.id}", 'text': base_text, 'time': upd_time.strftime('%H:%M'), 'tab': 'apps'}
+            if a.status == 'очікує':
+                email = a.client.email
+                if email not in pending_clients:
+                    pending_clients[email] = []
+                pending_clients[email].append(a)
+
+                diff = now - upd_time
+                hours_passed = int(diff.total_seconds() // 3600)
+                item_data = {
+                    'id': f"app_{a.id}", 
+                    'text': f"{a.client.name} | {a.service.name}", 
+                    'time': upd_time.strftime('%H:%M'), 
+                    'tab': 'apps'
+                }
+                if hours_passed >= 6:
+                    item_data['text'] = f"УВАГА: {a.client.name} чекає понад {hours_passed} год"
+                    urgent_items.append(item_data)
+                else:
+                    new_items.append(item_data)
             
-            if hours_passed >= 6:
-                urgent_items.append(item_data)
-            else:
-                new_items.append(item_data)
+            elif a.status == 'підтверджено' and slot_dt < now:
+                diff_past = now - slot_dt
+                hours_past = int(diff_past.total_seconds() // 3600)
+                if hours_past >= 6:
+                    recommend_archive_items.append({
+                        'id': f"rec_{a.id}",
+                        'text': f"Завершено: {a.client.name} ({a.slot.date.strftime('%d.%m')})",
+                        'time': a.slot.start_time.strftime('%H:%M'),
+                        'tab': 'apps'
+                    })
+
+        duplicate_items = []
+        for email, apps in pending_clients.items():
+            if len(apps) > 1:
+                duplicate_items.append({
+                    'id': f"dup_{email}",
+                    'text': f"Клієнт {apps[0].client.name} створив {len(apps)} заявки",
+                    'time': now.strftime('%H:%M'),
+                    'tab': 'apps'
+                })
+        if duplicate_items:
+            notifications.append({'id': 'g_dups', 'header': 'Повторні заявки', 'items': duplicate_items})
 
         if urgent_items: notifications.append({'id': 'g_urgent', 'header': 'ТЕРМІНОВІ', 'items': urgent_items})
+        if recommend_archive_items: notifications.append({'id': 'g_recommend', 'header': 'Рекомендовано до архіву', 'items': recommend_archive_items})
         if new_items: notifications.append({'id': 'g_new', 'header': 'Нові заявки', 'items': new_items})
 
         return jsonify({'details': notifications})
     except Exception as e:
-        print(f"NOTIF ERROR: {e}")
         return jsonify({'error': str(e)}), 500
