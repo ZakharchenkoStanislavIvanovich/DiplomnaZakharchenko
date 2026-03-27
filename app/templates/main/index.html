@@ -3,20 +3,208 @@
 {% block title %}Головна - Твій Нотаріус{% endblock %}
 
 {% block content %}
-  <div style="max-width: 50%; margin-left: 3%; margin-top: 50px; font-size: 2.5rem; line-height: 1.3; color: #343a40;">
-      <div>Приватний нотаріус</div>
-      <div>м. Івано-Франківська</div>
-      <div style="font-weight: 700;">Твій Нотаріус</div>
-  </div>
+<div class="container-fluid px-md-5">
+    
+    <!-- 1. СЕКЦІЯ -->
+    <div class="row align-items-start" style="margin-top: 60px; padding: 0 3%;">
+        <div class="col-lg-6">
+            <div style="font-size: 2.5rem; line-height: 1.3; color: #343a40;">
+                <div>Приватний нотаріус</div>
+                <div>м. Івано-Франківська</div>
+                <div style="font-weight: 700;">Твій Нотаріус</div>
+            </div>
 
-  <div style="max-width: 50%; border: 2px solid #343a40; border-radius: 15px; padding: 30px; 
-              background-color: rgba(255,255,255,0); color: #343a40; margin-top: 30px; 
-              margin-left: 3%;">
-      <h1 style="font-size: 2.5rem; font-weight: 700; margin-bottom: 20px;">
-          Безкоштовна онлайн консультація
-      </h1>
-      <p style="font-size: 1.1rem; line-height: 1.6;">
-          Онлайн консультація здійснюється через робочі контакти. Залишіть повідомлення в будь-якому із месенджерів і ми вам зателефонуємо.
-      </p>
-  </div>
+            <div style="margin-top: 30px;">
+                <a href="{{ url_for('appointments.book') }}" class="btn" 
+                   style="padding: 15px 40px; font-size: 1.2rem; font-weight: 600; border-radius: 10px;">
+                    Записатися на візит
+                </a>
+            </div>
+
+            <div style="border: 2px solid #343a40; border-radius: 15px; padding: 30px; 
+                        background-color: transparent; color: #343a40; margin-top: 30px;">
+                <h1 style="font-size: 2.2rem; font-weight: 700; margin-bottom: 20px;">
+                    Безкоштовна онлайн консультація
+                </h1>
+                <p style="font-size: 1.1rem; line-height: 1.6; margin-bottom: 0;">
+                    Онлайн консультація здійснюється через робочі контакти. Залишіть повідомлення в будь-якому із месенджерів і ми вам зателефонуємо.
+                </p>
+            </div>
+        </div>
+
+        <!-- Секція Фото -->
+        <div class="col-lg-6 text-end mt-4 mt-lg-0">
+            <div style="display: inline-block; border: 2px solid #343a40; border-radius: 15px; overflow: hidden; background: #fff;">
+                {% if active_photo %}
+                    <img id="notary-photo" src="{{ url_for('static', filename='uploads/notary/' + active_photo.filename) }}" 
+                         alt="Нотаріус" 
+                         style="width: 400px; height: 500px; object-fit: cover; display: block;">
+                {% else %}
+                    <img id="notary-photo" src="{{ url_for('static', filename='images/notary_portrait.jpg') }}" 
+                         alt="Нотаріус" 
+                         style="width: 400px; height: 500px; object-fit: cover; display: block;">
+                {% endif %}
+            </div>
+            
+            {% if current_user.is_authenticated and current_user.is_admin %}
+            <div style="margin-top: 10px; width: 400px; display: inline-block;" class="text-center">
+                <button class="btn btn-sm" data-bs-toggle="modal" data-bs-target="#photoGalleryModal" style="padding: 5px 15px; width: 100%;">
+                    Керувати фотогалереєю
+                </button>
+            </div>
+
+            <div class="modal fade" id="photoGalleryModal" tabindex="-1" aria-hidden="true">
+                <div class="modal-dialog modal-lg text-start">
+                    <div class="modal-content" style="border-radius: 15px; border: 2px solid #343a40; color: #343a40;">
+                        <div class="modal-header border-0">
+                            <h5 class="modal-title fw-bold">Керування портретом</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body">
+                            <div class="alert alert-secondary py-2 small mb-4" style="border: 1px dashed #343a40; background: #f8f9fa; color: #343a40;">
+                                <i class="fas fa-info-circle me-2"></i> 
+                                <strong>Порада:</strong> Рекомендоване співвідношення сторін — <strong>4:5</strong> (наприклад, 800x1000px). 
+                                Система автоматично центрує та обрізає фото під розмір 400x500px.
+                            </div>
+
+                            <!-- Форма завантаження -->
+                            <form action="{{ url_for('admin.upload_photo') }}" method="POST" enctype="multipart/form-data" class="mb-4">
+                                <label class="form-label small fw-bold">Завантажити нове фото:</label>
+                                <div class="input-group">
+                                    <input type="file" name="photo" class="form-control form-control-sm" accept="image/*" required>
+                                    <button class="btn btn-dark btn-sm px-3" type="submit">Додати</button>
+                                </div>
+                            </form>
+
+                            <hr>
+                            <label class="form-label small fw-bold mb-3">Виберіть фото для відображення або видаліть зайві:</label>
+                            
+                            <div class="row g-3">
+                                {% for p in all_photos %}
+                                <div class="col-3 position-relative photo-item">
+                                    <div style="border: 3px solid {{ '#556b2f' if p.is_active else '#dee2e6' }}; border-radius: 10px; overflow: hidden; cursor: pointer; transition: all 0.2s;" 
+                                         onclick="setActivePhoto({{ p.id }})" 
+                                         title="{{ 'Активне фото' if p.is_active else 'Натисніть, щоб обрати' }}">
+                                        <img src="{{ url_for('static', filename='uploads/notary/' + p.filename) }}" style="width: 100%; height: 140px; object-fit: cover;">
+                                        {% if p.is_active %}
+                                        <div style="position: absolute; bottom: 5px; left: 5px; background: #556b2f; color: white; font-size: 10px; padding: 2px 6px; border-radius: 4px;">
+                                            Активне
+                                        </div>
+                                        {% endif %}
+                                    </div>
+                                    
+                                    {% if not p.is_active %}
+                                    <button onclick="deletePhoto(event, {{ p.id }})" 
+                                            style="position: absolute; top: -5px; right: 5px; background: #dc3545; color: white; border: none; border-radius: 50%; width: 24px; height: 24px; font-size: 12px; display: flex; align-items: center; justify-content: center; z-index: 10; box-shadow: 0 2px 5px rgba(0,0,0,0.2);">
+                                        <i class="fas fa-times"></i>
+                                    </button>
+                                    {% endif %}
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <script>
+            function setActivePhoto(id) {
+                fetch(`/admin/photos/set_active/${id}`, {method: 'POST'})
+                .then(res => res.json())
+                .then(data => {
+                    if(data.status === 'success') location.reload();
+                });
+            }
+            function deletePhoto(event, id) {
+                event.stopPropagation();
+                if(confirm('Видалити це фото назавжди?')) {
+                    fetch(`/admin/photos/delete/${id}`, {method: 'POST'})
+                    .then(res => res.json())
+                    .then(data => {
+                        if(data.status === 'success') location.reload();
+                        else alert(data.message);
+                    });
+                }
+            }
+            </script>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- 2. БЛОК ПЕРЕВАГ -->
+    <div class="row" style="margin: 80px 3% 60px 3%; color: #343a40;">
+        <div class="col-md-4 mb-4">
+            <div style="border-top: 2px solid #343a40; padding-top: 20px;">
+                <i class="fas fa-user-shield fa-2x mb-3" style="color: #556b2f;"></i>
+                <h5 style="font-weight: 700;">Повна конфіденційність</h5>
+                <p style="font-size: 0.95rem;">Суворе дотримання нотаріальної таємниці та захист даних.</p>
+            </div>
+        </div>
+        <div class="col-md-4 mb-4">
+            <div style="border-top: 2px solid #343a40; padding-top: 20px;">
+                <i class="fas fa-bolt fa-2x mb-3" style="color: #556b2f;"></i>
+                <h5 style="font-weight: 700;">Швидке оформлення</h5>
+                <p style="font-size: 0.95rem;">Більшість послуг надається протягом 30 хвилин.</p>
+            </div>
+        </div>
+        <div class="col-md-4 mb-4">
+            <div style="border-top: 2px solid #343a40; padding-top: 20px;">
+                <i class="fas fa-coffee fa-2x mb-3" style="color: #556b2f;"></i>
+                <h5 style="font-weight: 700;">Комфортна зона очікування</h5>
+                <p style="font-size: 0.95rem;">Професійна атмосфера та зручність для кожного клієнта.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- 3. КОНТАКТИ ТА КАРТА -->
+    <div id="contacts-section" class="row" style="margin: 0 3% 80px 3%; color: #343a40;">
+        <div class="col-lg-6">
+            <h2 style="font-size: 2.5rem; font-weight: 700; margin-bottom: 30px;">Контакти</h2>
+
+            <div style="font-size: 1.2rem;">
+                <p style="margin-bottom: 15px;">
+                    <i class="fas fa-phone" style="margin-right: 15px; color: #556b2f; width: 25px;"></i>
+                    <strong>Телефон:</strong> <a href="tel:+380671234567" style="text-decoration: none; color: inherit;">+380-67-123-45-67</a>
+                </p>
+                <p style="margin-bottom: 15px;">
+                    <i class="fas fa-envelope" style="margin-right: 15px; color: #556b2f; width: 25px;"></i>
+                    <strong>Email:</strong> <a href="mailto:tviy.notarius@gmail.com" style="text-decoration: none; color: inherit;">tviy.notarius@gmail.com</a>
+                </p>
+                <p style="margin-bottom: 15px;">
+                    <i class="fab fa-viber" style="margin-right: 15px; color: #556b2f; width: 25px;"></i>
+                    <strong>Viber:</strong> +380-67-123-45-67
+                </p>
+                <p style="margin-bottom: 25px;">
+                    <i class="fab fa-whatsapp" style="margin-right: 15px; color: #556b2f; width: 25px;"></i>
+                    <strong>WhatsApp:</strong> +380-67-123-45-67
+                </p>
+            </div>
+
+            <div style="border-top: 2px solid #343a40; padding-top: 20px; display: inline-block; min-width: 250px;">
+                <h5 style="font-weight: 700; margin-bottom: 10px;">
+                    <i class="fas fa-clock" style="margin-right: 10px; color: #556b2f;"></i>Графік роботи
+                </h5>
+                <div style="font-size: 1.1rem;">
+                    <span>Пн-Пт: 09:00 — 18:00</span><br>
+                    <span style="color: #666; font-size: 0.95rem;">Сб-Нд: за домовленістю</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-6 mt-5 mt-lg-0">
+            <div style="margin-bottom: 15px; font-weight: 700; font-size: 1.1rem; display: flex; align-items: center;">
+                <i class="fas fa-map-marker-alt" style="margin-right: 10px; color: #556b2f;"></i>
+                Місцезнаходження офісу:
+            </div>
+            <div style="border: 2px solid #343a40; border-radius: 15px; overflow: hidden; height: 400px;">
+                <iframe 
+                    src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d2621.57211516757!2d24.700894666364803!3d48.914706535010005!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x4730c16b677764d1%3A0xc3f8377e68278297!2z0IbRhNC90YLRg9C90LM!5e0!3m2!1suk!2sua!4v1707567890000!5m2!1suk!2sua" 
+                    width="100%" height="100%" style="border:0;" allowfullscreen="" loading="lazy">
+                </iframe>
+            </div>
+        </div>
+    </div>
+</div>
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
 {% endblock %}

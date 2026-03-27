@@ -1,8 +1,11 @@
+import os
+import uuid
+from werkzeug.utils import secure_filename
 from datetime import datetime, timedelta
-from flask import render_template, abort, request, jsonify, current_app
+from flask import render_template, abort, request, jsonify, current_app, url_for, redirect, flash
 from flask_login import login_required, current_user
 from app.admin import bp
-from app.models import Appointment, ArchivedAppointment, TimeSlot, Service
+from app.models import Appointment, ArchivedAppointment, TimeSlot, Service, NotaryPhoto
 from app import db, mail
 from functools import wraps
 from flask_mail import Message
@@ -340,3 +343,61 @@ def get_notifications():
         return jsonify({'details': notifications})
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+    
+@bp.route('/upload_photo', methods=['POST'])
+@login_required
+@admin_required
+def upload_photo():
+    if 'photo' not in request.files:
+        flash('Файл не знайдено', 'warning')
+        return redirect(url_for('main.index'))
+    
+    file = request.files['photo']
+    if file and file.filename != '':
+        import shutil
+        ext = os.path.splitext(file.filename)[1]
+        random_name = f"{uuid.uuid4().hex}{ext}"
+        
+        upload_path = os.path.join(current_app.root_path, 'static', 'uploads', 'notary')
+        
+        os.makedirs(upload_path, exist_ok=True)
+
+        try:
+            full_path = os.path.join(upload_path, random_name)
+            file.save(full_path)
+            
+            new_photo = NotaryPhoto(filename=random_name, is_active=False)
+            db.session.add(new_photo)
+            db.session.commit()
+            flash('Фото завантажено успішно!', 'success')
+        except Exception as e:
+            print(f"DEBUG ERROR: {str(e)}")
+            flash(f'Критична помилка запису: {str(e)}', 'danger')
+            
+    return redirect(url_for('main.index'))
+
+@bp.route('/photos/set_active/<int:photo_id>', methods=['POST'])
+@login_required
+@admin_required
+def set_active_photo(photo_id):
+    NotaryPhoto.query.update({NotaryPhoto.is_active: False})
+    photo = NotaryPhoto.query.get_or_404(photo_id)
+    photo.is_active = True
+    db.session.commit()
+    return jsonify({'status': 'success'})
+
+@bp.route('/photos/delete/<int:photo_id>', methods=['POST'])
+@login_required
+@admin_required
+def delete_photo(photo_id):
+    photo = NotaryPhoto.query.get_or_404(photo_id)
+    if photo.is_active:
+        return jsonify({'status': 'error', 'message': 'Неможливо видалити активне фото'}), 400
+    
+    file_path = os.path.join(current_app.root_path, 'static', 'uploads', 'notary', photo.filename)
+    if os.path.exists(file_path):
+        os.remove(file_path)
+    
+    db.session.delete(photo)
+    db.session.commit()
+    return jsonify({'status': 'success'})

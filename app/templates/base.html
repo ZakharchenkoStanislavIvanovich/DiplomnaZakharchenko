@@ -49,8 +49,8 @@
       </button>
       <div class="collapse navbar-collapse" id="navbarNav">
         <ul class="navbar-nav ms-auto align-items-center">
+          <li class="nav-item"><a class="nav-btn" href="{{ url_for('main.index') }}#contacts-section">Контакти</a></li>
           <li class="nav-item"><a class="nav-btn" href="{{ url_for('appointments.book') }}">Подати заявку на прийом</a></li>
-          <li class="nav-item"><a class="nav-btn" href="{{ url_for('main.contacts') }}">Контакти</a></li>
           <li class="nav-item"><a class="nav-btn" href="{{ url_for('main.services_list') }}">Нотаріальні послуги</a></li>
           {% if current_user.is_authenticated %}
             {% if current_user.is_admin %}

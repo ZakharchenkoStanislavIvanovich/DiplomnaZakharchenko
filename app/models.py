@@ -148,3 +148,17 @@ class ArchivedAppointment(db.Model):
     def deletion_type(self): return decrypt_data(self._deletion_type)
     @deletion_type.setter
     def deletion_type(self, value): self._deletion_type = encrypt_data(value)
+
+class NotaryPhoto(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    _filename = db.Column('filename', db.Text, nullable=False)
+    is_active = db.Column(db.Boolean, default=False)
+    created_at = db.Column(db.DateTime, default=datetime.now)
+
+    @property
+    def filename(self):
+        return decrypt_data(self._filename)
+
+    @filename.setter
+    def filename(self, value):
+        self._filename = encrypt_data(value)
