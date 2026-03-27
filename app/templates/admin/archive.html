@@ -23,6 +23,11 @@
                             </div>
                             <div class="text-muted small mb-1">{{ entry.client_email }}</div>
                             <p class="mb-0 small text-dark"><strong>Послуга:</strong> {{ entry.service_name }}</p>
+                            <p class="mb-0 small text-dark"><strong>Останній статус:</strong> 
+                                <span class="badge {% if entry.status == 'підтверджено' %}bg-success{% elif entry.status == 'відхилено' %}bg-danger{% else %}bg-warning text-dark{% endif %}">
+                                    {{ entry.status }}
+                                </span>
+                            </p>
                             
                             {% set parts = entry.slot_info.split('|') %}
                             <p class="mb-0 small text-dark"><strong>Запис на:</strong> {{ parts[0] }}</p>
@@ -52,6 +57,11 @@
                             </div>
                             <div class="text-muted small mb-1">{{ entry.client_email }}</div>
                             <p class="mb-0 small text-dark"><strong>Послуга:</strong> {{ entry.service_name }}</p>
+                            <p class="mb-0 small text-dark"><strong>Останній статус:</strong> 
+                                <span class="badge {% if entry.status == 'підтверджено' %}bg-success{% elif entry.status == 'відхилено' %}bg-danger{% else %}bg-warning text-dark{% endif %}">
+                                    {{ entry.status }}
+                                </span>
+                            </p>
                             
                             {% set parts = entry.slot_info.split('|') %}
                             <p class="mb-0 small text-dark"><strong>Запис на:</strong> {{ parts[0] }}</p>

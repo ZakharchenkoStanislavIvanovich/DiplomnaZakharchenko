@@ -60,6 +60,8 @@ def dashboard():
     all_slots = TimeSlot.query.order_by(TimeSlot.date, TimeSlot.start_time).all()
     
     all_archived = ArchivedAppointment.query.all()
+    
+    archived_map = {str(ar.original_id): ar for ar in all_archived}
 
     calendar_data = defaultdict(list)
     for slot in all_slots:
@@ -71,6 +73,7 @@ def dashboard():
                             appointments=appointments, 
                             services=services,
                             calendar_data=dict(calendar_data),
+                            archived_map=archived_map,
                             all_archived=all_archived,
                             relativedelta=relativedelta,
                             now=datetime.now())

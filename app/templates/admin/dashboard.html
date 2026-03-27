@@ -164,31 +164,41 @@
                                         <div class="d-flex flex-wrap gap-2">
                                             {% for slot in d_slots|sort(attribute='start_time') %}
                                                 {% set active_app = slot.appointments[0] if slot.appointments else None %}
-                                                {% set slot_dt_str = slot.date.strftime('%Y-%m-%d') ~ ' ' ~ slot.start_time.strftime('%H:%M') %}
+                                                
+                                                {% set arch_app = archived_map.get(slot.id|string) %}
 
-                                                {% set archived_app = None %}
-                                                {% if not active_app %}
-                                                    {% for ar in all_archived %}
-                                                        {% if ar.original_id == slot.id %}
-                                                            {% set archived_app = ar %}
-                                                        {% endif %}
-                                                    {% endfor %}
-                                                {% endif %}
+                                                {% set slot_dt_str = slot.date.strftime('%Y-%m-%d') ~ ' ' ~ slot.start_time.strftime('%H:%M') %}
+                                                {% set is_past = slot_dt_str < now.strftime('%Y-%m-%d %H:%M') %}
 
                                                 <div id="slot-{{ slot.id }}" class="p-2 rounded text-center slot-card 
                                                     {% if active_app %}
                                                         {% if active_app.status == 'підтверджено' %}slot-confirmed
                                                         {% elif active_app.status == 'відхилено' %}slot-rejected
                                                         {% else %}slot-waiting{% endif %}
-                                                    {% elif archived_app %}
-                                                        slot-rejected
-                                                    {% elif slot_dt_str < now.strftime('%Y-%m-%d %H:%M') %}
+                                                    {% elif arch_app and is_past %}
+                                                        {% if arch_app.status == 'підтверджено' %}slot-confirmed
+                                                        {% elif arch_app.status == 'відхилено' %}slot-rejected
+                                                        {% else %}slot-waiting{% endif %}
+                                                    {% elif is_past %}
                                                         slot-expired
                                                     {% else %}
                                                         slot-free
                                                     {% endif %}"
-                                                    onclick="openInfo('{{ slot.start_time.strftime('%H:%M') }}', '{{ slot.date.strftime('%d.%m.%Y') }}', '{{ active_app.client.name if active_app else (archived_app.client_name if archived_app else '') }}', '{{ active_app.service.name if active_app else (archived_app.service_name if archived_app else '') }}', '{{ active_app.status if active_app else (archived_app.status if archived_app else '') }}', '{{ active_app.id if active_app else '' }}', '{{ active_app.client.email if active_app else (archived_app.client_email if archived_app else '') }}', {{ 'true' if slot_dt_str < now.strftime('%Y-%m-%d %H:%M') else 'false' }}, '{{ active_app.client.phone if active_app else (archived_app.client_phone if archived_app else '') }}')">
+                                                    onclick="openInfo('{{ slot.start_time.strftime('%H:%M') }}', 
+                                                                    '{{ slot.date.strftime('%d.%m.%Y') }}', 
+                                                                    '{{ (active_app.client.name if active_app else (arch_app.client_name if (arch_app and is_past) else ''))|replace("'", "\\'") }}', 
+                                                                    '{{ (active_app.service.name if active_app else (arch_app.service_name if (arch_app and is_past) else ''))|replace("'", "\\'") }}', 
+                                                                    '{{ (active_app.status if active_app else (arch_app.status if (arch_app and is_past) else '')) }}', 
+                                                                    '{{ active_app.id if active_app else '' }}', 
+                                                                    '{{ (active_app.client.email if active_app else (arch_app.client_email if (arch_app and is_past) else '')) }}', 
+                                                                    {{ 'true' if (is_past and not active_app and not (arch_app and is_past)) else 'false' }}, 
+                                                                    '{{ (active_app.client.phone if active_app else (arch_app.client_phone if (arch_app and is_past) else '')) }}')">
+                                                    
                                                     {{ slot.start_time.strftime('%H:%M') }}
+                                                    
+                                                    {% if arch_app and is_past and not active_app %}
+                                                        <div style="font-size:7px; color:black; font-weight:bold; line-height:1;">АРХІВ</div>
+                                                    {% endif %}
                                                 </div>
                                             {% endfor %}
                                         </div>
@@ -280,23 +290,29 @@
                                         <div class="d-flex flex-wrap gap-2">
                                             {% for slot in d_day_slots|sort(attribute='start_time') %}
                                                 {% set app = slot.appointments[0] if slot.appointments else None %}
+                                                {% set arch_app = archived_map.get(slot.id|string) %}
                                                 
                                                 {% set slot_dt_check = slot.date.strftime('%Y-%m-%d') ~ ' ' ~ slot.start_time.strftime('%H:%M') %}
-                                                {% set is_expired_manage = not app and slot_dt_check < now.strftime('%Y-%m-%d %H:%M') %}
+                                                {% set is_past_check = slot_dt_check < now.strftime('%Y-%m-%d %H:%M') %}
 
                                                 <div class="badge border text-dark p-2 d-flex align-items-center gap-1 
                                                     {% if app %}
                                                         {% if app.status == 'підтверджено' %}slot-confirmed
                                                         {% elif app.status == 'відхилено' %}slot-rejected
                                                         {% else %}slot-waiting{% endif %}
-                                                    {% elif is_expired_manage %}
+                                                    {% elif arch_app and is_past_check %}
+                                                        {% if arch_app.status == 'підтверджено' %}slot-confirmed
+                                                        {% else %}slot-waiting{% endif %}
+                                                    {% elif is_past_check %}
                                                         slot-expired
                                                     {% else %}
                                                         bg-light
                                                     {% endif %}">
+                                                    
                                                     {% if not app %}
                                                         <input type="checkbox" class="bulk-delete-check" value="{{ slot.id }}">
                                                     {% endif %}
+                                                    
                                                     {{ slot.start_time.strftime('%H:%M') }}
                                                 </div>
                                             {% endfor %}
