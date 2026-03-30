@@ -153,7 +153,8 @@ class NotaryPhoto(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     _filename = db.Column('filename', db.Text, nullable=False)
     is_active = db.Column(db.Boolean, default=False)
-    created_at = db.Column(db.DateTime, default=datetime.now)
+    
+    _created_at = db.Column('created_at', db.Text, default=lambda: encrypt_data(datetime.now().isoformat()))
 
     @property
     def filename(self):
@@ -162,3 +163,19 @@ class NotaryPhoto(db.Model):
     @filename.setter
     def filename(self, value):
         self._filename = encrypt_data(value)
+
+    @property
+    def created_at(self):
+        try:
+            if not self._created_at:
+                return None
+            return datetime.fromisoformat(decrypt_data(self._created_at))
+        except Exception:
+            return None
+
+    @created_at.setter
+    def created_at(self, value):
+        if isinstance(value, datetime):
+            self._created_at = encrypt_data(value.isoformat())
+        else:
+            self._created_at = encrypt_data(value)

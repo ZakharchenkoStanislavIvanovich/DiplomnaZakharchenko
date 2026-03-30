@@ -1,82 +1,127 @@
 {% extends "base.html" %}
+
+{% block title %}Архів заявок{% endblock %}
+
 {% block content %}
 <div class="container mt-5">
     <div class="d-flex justify-content-between align-items-center mb-2">
-        <h1>Архів видалених заявок</h1>
-        <a href="{{ url_for('admin.dashboard') }}" class="btn btn-outline-primary btn-sm">Назад до панелі</a>
+        <h1 class="fw-bold">Архів заявок</h1>
+        <a href="{{ url_for('admin.dashboard') }}" class="btn btn-outline-primary btn-sm">Назад до кабінету</a>
     </div>
+    
     <p class="text-muted small mb-4">
-        <i class="fas fa-history"></i> Записи зберігаються в архіві протягом <strong>3 днів</strong>, після чого видаляються з бази даних назавжди.
+        Записи в цьому розділі зберігаються для історії. Ви можете видалити будь-який запис назавжди за допомогою кнопки видалення.
     </p>
 
     <div class="row">
-        <div class="col-md-6">
-            <h4 class="text-secondary border-bottom pb-2">Видалено вручну</h4>
-            <div class="list-group">
+        <div class="col-md-6 mb-4">
+            <h4 class="text-secondary border-bottom pb-2 mb-3">Ручний архів</h4>
+            <div class="list-group shadow-sm">
                 {% for entry in manual_deleted %}
                 <div class="list-group-item p-3">
                     <div class="d-flex w-100 justify-content-between align-items-start">
                         <div class="me-3">
-                            <h6 class="mb-0 fw-bold">{{ entry.client_name }}</h6>
-                            <div class="small text-dark mb-1">
-                                <i class="fas fa-phone-alt small text-muted me-1"></i> {{ entry.client_phone if entry.client_phone else '---' }}
+                            <h6 class="mb-0 fw-bold text-dark">{{ entry.client_name }}</h6>
+                            <div class="small text-muted mb-1">
+                                <i class="fas fa-phone-alt me-1"></i> {{ entry.client_phone if entry.client_phone else '---' }}
                             </div>
-                            <div class="text-muted small mb-1">{{ entry.client_email }}</div>
-                            <p class="mb-0 small text-dark"><strong>Послуга:</strong> {{ entry.service_name }}</p>
-                            <p class="mb-0 small text-dark"><strong>Останній статус:</strong> 
+                            <div class="text-muted small mb-2 border-bottom pb-1">{{ entry.client_email }}</div>
+                            
+                            <p class="mb-1 small text-dark"><strong>Послуга:</strong> {{ entry.service_name }}</p>
+                            
+                            {% set parts = entry.slot_info.split('|') %}
+                            <p class="mb-1 small text-dark"><strong>Запис на:</strong> {{ parts[0] }}</p>
+
+                            <p class="mb-0 small text-dark"><strong>Статус при видаленні:</strong> 
                                 <span class="badge {% if entry.status == 'підтверджено' %}bg-success{% elif entry.status == 'відхилено' %}bg-danger{% else %}bg-warning text-dark{% endif %}">
                                     {{ entry.status }}
                                 </span>
                             </p>
-                            
-                            {% set parts = entry.slot_info.split('|') %}
-                            <p class="mb-0 small text-dark"><strong>Запис на:</strong> {{ parts[0] }}</p>
                         </div>
-                        <div class="text-end" style="min-width: 170px; line-height: 1.4;">
-                            <div class="small text-dark"><strong>Подано:</strong> {{ parts[1] if parts|length > 1 else '---' }}</div>
-                            <div class="small text-danger"><strong>Видалено:</strong> {{ entry.deleted_at.strftime('%d.%m %H:%M') }}</div>
+                        <div class="text-end d-flex flex-column justify-content-between" style="min-width: 180px; min-height: 110px;">
+                            <div>
+                                <div class="small text-muted">Подано: {{ parts[1] if parts|length > 1 else '---' }}</div>
+                                <div class="small text-danger fw-bold">Видалено: {{ entry.deleted_at.strftime('%d.%m %H:%M') }}</div>
+                            </div>
+                            <button class="btn btn-sm btn-dark mt-2" 
+                                    onclick="deleteArchiveEntry({{ entry.id }}, this)">
+                                <i class="fas fa-trash-alt me-1"></i>Видалити назавжди
+                            </button>
                         </div>
                     </div>
                 </div>
                 {% else %}
-                <p class="text-muted italic mt-2">Записів немає</p>
+                <div class="text-center py-4 bg-light rounded border">
+                    <p class="text-muted mb-0">Вручну архівованих заявок немає</p>
+                </div>
                 {% endfor %}
             </div>
         </div>
 
-        <div class="col-md-6">
-            <h4 class="text-danger border-bottom pb-2">Видалено автоматично</h4>
-            <div class="list-group">
+        <div class="col-md-6 mb-4">
+            <h4 class="text-danger border-bottom pb-2 mb-3">Автоматичний архів</h4>
+            <p class="text-muted small mb-3">Відхилені заявки, що залишались активними протягом 12 годин.</p>
+            <div class="list-group shadow-sm">
                 {% for entry in auto_deleted %}
                 <div class="list-group-item border-danger-subtle p-3">
                     <div class="d-flex w-100 justify-content-between align-items-start">
                         <div class="me-3">
-                            <h6 class="mb-0 fw-bold">{{ entry.client_name }}</h6>
-                            <div class="small text-dark mb-1">
-                                <i class="fas fa-phone-alt small text-muted me-1"></i> {{ entry.client_phone if entry.client_phone else '---' }}
+                            <h6 class="mb-0 fw-bold text-dark">{{ entry.client_name }}</h6>
+                            <div class="small text-muted mb-1">
+                                <i class="fas fa-phone-alt me-1"></i> {{ entry.client_phone if entry.client_phone else '---' }}
                             </div>
-                            <div class="text-muted small mb-1">{{ entry.client_email }}</div>
-                            <p class="mb-0 small text-dark"><strong>Послуга:</strong> {{ entry.service_name }}</p>
-                            <p class="mb-0 small text-dark"><strong>Останній статус:</strong> 
-                                <span class="badge {% if entry.status == 'підтверджено' %}bg-success{% elif entry.status == 'відхилено' %}bg-danger{% else %}bg-warning text-dark{% endif %}">
-                                    {{ entry.status }}
-                                </span>
+                            <div class="text-muted small mb-2 border-bottom pb-1">{{ entry.client_email }}</div>
+                            
+                            <p class="mb-1 small text-dark"><strong>Послуга:</strong> {{ entry.service_name }}</p>
+                            <p class="mb-1 small text-dark"><strong>Статус:</strong> 
+                                <span class="badge bg-danger opacity-75">{{ entry.status }}</span>
                             </p>
                             
                             {% set parts = entry.slot_info.split('|') %}
                             <p class="mb-0 small text-dark"><strong>Запис на:</strong> {{ parts[0] }}</p>
                         </div>
-                        <div class="text-end" style="min-width: 170px; line-height: 1.4;">
-                            <div class="small text-dark"><strong>Подано:</strong> {{ parts[1] if parts|length > 1 else '---' }}</div>
-                            <div class="small text-danger"><strong>Видалено:</strong> {{ entry.deleted_at.strftime('%d.%m %H:%M') }}</div>
+                        <div class="text-end d-flex flex-column justify-content-between" style="min-width: 180px; min-height: 110px;">
+                            <div>
+                                <div class="small text-muted">Подано: {{ parts[1] if parts|length > 1 else '---' }}</div>
+                                <div class="small text-danger fw-bold">Архівовано: {{ entry.deleted_at.strftime('%d.%m %H:%M') }}</div>
+                            </div>
+                            <button class="btn btn-sm btn-dark mt-2" 
+                                    onclick="deleteArchiveEntry({{ entry.id }}, this)">
+                                <i class="fas fa-trash-alt me-1"></i>Видалити назавжди
+                            </button>
                         </div>
                     </div>
                 </div>
                 {% else %}
-                <p class="text-muted italic mt-2">Автоматично видалених заявок немає</p>
+                <div class="text-center py-4 bg-light rounded border">
+                    <p class="text-muted mb-0">Автоматично архівованих заявок немає</p>
+                </div>
                 {% endfor %}
             </div>
         </div>
     </div>
 </div>
+
+<script>
+function deleteArchiveEntry(id, btn) {
+    if (confirm('Ви впевнені, що хочете видалити цей запис назавжди?')) {
+        const item = btn.closest('.list-group-item');
+        
+        fetch(`/admin/archive/delete/${id}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                item.remove();
+                if (document.querySelectorAll('.list-group-item').length === 0) {
+                    location.reload();
+                }
+            }
+        })
+        .catch(error => console.error('Error:', error));
+    }
+}
+</script>
 {% endblock %}

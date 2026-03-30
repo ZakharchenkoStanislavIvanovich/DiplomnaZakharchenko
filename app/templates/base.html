@@ -5,7 +5,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>{% block title %}Нотаріус{% endblock %}</title>
-  
+  <link rel="icon" type="image/png" href="{{ url_for('static', filename='img/logo.png') }}">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@700;900&display=swap" rel="stylesheet">
@@ -16,8 +16,30 @@
           --notary-grey: #343a40;
       }
       .navbar { background-color: var(--notary-olive) !important; }
-      .navbar-brand { font-family: 'Poppins', sans-serif; font-weight: 900; text-transform: uppercase; font-size: 2rem; letter-spacing: 2px; color: white !important; text-decoration: none; transition: opacity 0.3s; }
+      
+      .navbar-brand { 
+          font-family: 'Poppins', sans-serif; 
+          font-weight: 900; 
+          text-transform: uppercase; 
+          font-size: 1.8rem; 
+          letter-spacing: 2px; 
+          color: white !important; 
+          text-decoration: none; 
+          transition: opacity 0.3s;
+          display: flex;
+          align-items: center;
+      }
+      
+      .navbar-logo {
+          height: 45px;
+          width: auto;
+          margin-right: 15px;
+          filter: brightness(0) invert(1); 
+          transition: transform 0.3s ease;
+      }
+      
       .navbar-brand:hover { opacity: 0.8; }
+
       .nav-btn { background-color: var(--notary-grey); color: white !important; padding: 8px 20px; margin: 4px 6px; border-radius: 10px; text-decoration: none; font-weight: 500; transition: background 0.3s, transform 0.2s; display: inline-block; }
       .nav-btn:hover { background-color: #23272b; transform: scale(1.05); }
       .btn, .btn-primary { background-color: var(--notary-grey) !important; border-color: var(--notary-grey) !important; color: white !important; border-radius: 10px; transition: background 0.3s, transform 0.2s; }
@@ -43,7 +65,10 @@
 <body>
   <nav class="navbar navbar-expand-lg">
     <div class="container-fluid">
-      <a class="navbar-brand" href="{{ url_for('main.index') }}">ТВІЙ НОТАРІУС</a>
+      <a class="navbar-brand" href="{{ url_for('main.index') }}">
+        <img src="{{ url_for('static', filename='img/logo.png') }}" alt="Logo" class="navbar-logo">
+        ТВІЙ НОТАРІУС
+      </a>
       <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
         <span class="navbar-toggler-icon" style="filter: invert(1);"></span>
       </button>

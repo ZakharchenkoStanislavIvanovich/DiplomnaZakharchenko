@@ -5,219 +5,103 @@
 {% block content %}
 
 <style>
-    body {
-        overflow: auto;
-        min-height: 100vh;
-    }
-
-    #privacyCheck:checked {
-        background-color: #556b2f !important;
-        border-color: #556b2f !important;
-    }
-
-    #privacyCheck:focus {
-        border-color: #556b2f !important;
-        box-shadow: 0 0 0 0.25rem rgba(85, 107, 47, 0.25) !important;
-    }
-
-    .form-check-label {
-        cursor: pointer;
-    }
-
+    body { overflow: auto; min-height: 100vh; }
+    #privacyCheck:checked { background-color: #556b2f !important; border-color: #556b2f !important; }
+    .form-check-label { cursor: pointer; }
     #infoButton {
-        background-color: #343a40 !important;
-        color: white !important;
-        padding: 0 15px;
-        border-radius: 10px;
-        text-decoration: none;
-        font-weight: 500;
-        border: none !important;
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        transition: background-color 0.3s ease !important;
-        height: 40px;
+        background-color: #343a40 !important; color: white !important;
+        padding: 0 15px; border-radius: 10px; text-decoration: none;
+        font-weight: 500; border: none !important; display: inline-flex;
+        align-items: center; justify-content: center; height: 40px;
     }
-
-    #infoButton:hover:not([style*="pointer-events: none"]) {
-        background-color: #23272b !important;
-    }
-
     .btn-primary, #submitButton {
-        background-color: #343a40 !important;
-        border-color: #343a40 !important;
-        color: white !important;
-        border-radius: 10px;
-        padding: 10px 25px;
-        transition: background-color 0.3s ease !important;
+        background-color: #343a40 !important; border-color: #343a40 !important;
+        color: white !important; border-radius: 10px; padding: 10px 25px;
     }
-
-    .btn-primary:hover, #submitButton:hover {
-        background-color: #23272b !important;
-        border-color: #23272b !important;
-    }
-
-    .custom-container {
-        position: relative;
-        flex-grow: 1;
-    }
-
-    #service_select, #time_id {
-        display: none;
-    }
-
+    .custom-container { position: relative; flex-grow: 1; }
+    .hidden-select { display: none !important; }
     .custom-select-trigger {
-        padding: 8px 15px;
-        border: 1px solid #ced4da;
-        border-radius: 10px;
-        background: #fff;
-        cursor: pointer;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        height: 40px;
-        transition: border-color 0.2s;
+        padding: 8px 15px; border: 1px solid #ced4da; border-radius: 10px;
+        background: #fff; cursor: pointer; display: flex;
+        justify-content: space-between; align-items: center; height: 40px;
         color: #6c757d;
     }
-
-    .custom-select-trigger.disabled {
-        background-color: #fff;
-        color: #6c757d;
-        cursor: default;
-        pointer-events: none;
-    }
-
+    .custom-select-trigger.disabled { background-color: #f8f9fa; cursor: default; pointer-events: none; }
     .custom-arrow {
-        width: 10px;
-        height: 10px;
-        border-right: 2px solid #6c757d;
-        border-bottom: 2px solid #6c757d;
-        transform: rotate(45deg);
-        margin-top: -4px;
-        transition: transform 0.3s ease;
+        width: 10px; height: 10px; border-right: 2px solid #6c757d;
+        border-bottom: 2px solid #6c757d; transform: rotate(45deg); margin-top: -4px;
     }
-
-    .custom-select-trigger.active .custom-arrow {
-        transform: rotate(-135deg);
-        margin-top: 4px;
-    }
-
     .custom-options {
-        position: absolute;
-        top: 100%;
-        left: 0;
-        right: 0;
-        display: none;
-        overflow-y: auto;
-        max-height: 250px;
-        border: 1px solid #ced4da;
-        border-radius: 10px;
-        margin-top: 5px;
-        background: #fff;
-        z-index: 1000;
+        position: absolute; top: 100%; left: 0; right: 0; display: none;
+        overflow-y: auto; max-height: 250px; border: 1px solid #ced4da;
+        border-radius: 10px; margin-top: 5px; background: #fff; z-index: 1000;
         box-shadow: 0 4px 12px rgba(0,0,0,0.1);
     }
-
-    .custom-options.show {
-        display: block;
-    }
-
-    .custom-option {
-        padding: 10px 15px;
-        cursor: pointer;
-        border-bottom: 1px solid #eee;
-        transition: background 0.2s;
-    }
-
-    .custom-option:last-child {
-        border-bottom: none;
-    }
-
-    .custom-option:hover {
-        background-color: #f8f9fa;
-    }
-
-    .service-wrapper {
-        display: flex;
-        gap: 10px;
-        align-items: flex-start;
-    }
+    .custom-options.show { display: block; }
+    .custom-option { padding: 10px 15px; cursor: pointer; border-bottom: 1px solid #eee; color: #343a40; }
+    .custom-option:hover { background-color: #f8f9fa; }
+    .service-wrapper { display: flex; gap: 10px; align-items: flex-start; }
 </style>
 
 <div style="display: flex; flex-wrap: wrap; gap: 30px; max-width: 95%; margin: 50px 3%;">
-
     <div style="flex: 1 1 600px; min-width: 300px; color: #343a40;">
         <h2 style="color: #343a40; font-weight: 700; margin-bottom: 30px;">Подання заявки на візит</h2>
 
-        <form id="appointmentForm" method="POST">
+        <form id="appointmentForm" method="POST" novalidate>
             {{ form.hidden_tag() }}
 
             <div class="mb-3">
                 {{ form.name.label(class="form-label") }}
-                {{ form.name(class="form-control", placeholder="Введіть ваше ім'я") }}
-                {% for error in form.name.errors %}
-                <div class="text-danger small">{{ error }}</div>
-                {% endfor %}
+                {{ form.name(class="form-control", placeholder="Введіть ваше ім'я", id="real_name") }}
+                <div id="nameError" class="text-danger small mt-1" style="display:none;">Введіть ваше ім'я.</div>
             </div>
 
             <div class="mb-3">
                 {{ form.email.label(class="form-label") }}
-                {{ form.email(class="form-control", placeholder="Введіть ваш email") }}
-                {% for error in form.email.errors %}
-                <div class="text-danger small">{{ error }}</div>
-                {% endfor %}
+                {{ form.email(class="form-control", placeholder="Введіть ваш email", id="real_email") }}
+                <div id="emailError" class="text-danger small mt-1" style="display:none;">Введіть коректний email.</div>
             </div>
 
             <div class="mb-3">
                 {{ form.phone.label(class="form-label") }}
-                {{ form.phone(class="form-control", placeholder="+380XXXXXXXXX") }}
-                {% for error in form.phone.errors %}
-                <div class="text-danger small">{{ error }}</div>
-                {% endfor %}
+                {{ form.phone(class="form-control", placeholder="+380XXXXXXXXX", id="real_phone") }}
+                <div id="phoneError" class="text-danger small mt-1" style="display:none;">Введіть номер у форматі +380XXXXXXXXX.</div>
             </div>
 
             <div class="mb-3">
                 {{ form.service_id.label(class="form-label") }}
                 <div class="service-wrapper">
                     <div class="custom-container">
-                        {{ form.service_id(id="service_select") }}
+                        {{ form.service_id(id="service_select", class="hidden-select") }}
                         <div class="custom-select-trigger" id="service_trigger">
-                            <span>Натисніть, щоб обрати послугу зі списку</span>
+                            <span>Натисніть, щоб обрати послугу</span>
                             <div class="custom-arrow"></div>
                         </div>
                         <div class="custom-options" id="service_options"></div>
                     </div>
-                    
-                    <a id="infoButton" href="{{ url_for('main.services_list') }}" 
-                       title="Детальніше про послугу" 
-                       style="white-space: nowrap; opacity: 0.5; pointer-events: none; font-size: 0.9rem;">
-                        Про послугу
-                    </a>
+                    <a id="infoButton" href="{{ url_for('main.services_list') }}" style="white-space: nowrap; opacity: 0.5; pointer-events: none; font-size: 0.9rem;">Про послугу</a>
                 </div>
+                <div id="serviceError" class="text-danger small mt-1" style="display:none;">Оберіть послугу зі списку.</div>
             </div>
 
             <div class="mb-3">
                 {{ form.date.label(class="form-label") }}
                 {{ form.date(class="form-control", id="date") }}
-                {% for error in form.date.errors %}
-                <div class="text-danger small">{{ error }}</div>
-                {% endfor %}
-                <div id="weekendError" class="text-danger small" style="display:none;">Вибачте, нотаріус не працює у вихідні дні.</div>
+                <div id="dateError" class="text-danger small mt-1" style="display:none;">Оберіть дату візиту.</div>
+                <div id="weekendError" class="text-danger small" style="display:none;">Нотаріус не працює у вихідні.</div>
             </div>
 
             <div class="mb-3">
                 {{ form.time_id.label(class="form-label") }}
                 <div class="custom-container">
-                    {{ form.time_id(id="time_id") }}
+                    {{ form.time_id(id="time_id", class="hidden-select") }}
                     <div class="custom-select-trigger disabled" id="time_trigger">
                         <span>Спочатку оберіть дату</span>
                         <div class="custom-arrow"></div>
                     </div>
                     <div class="custom-options" id="time_options"></div>
                 </div>
-                {% for error in form.time_id.errors %}
-                <div class="text-danger small">{{ error }}</div>
-                {% endfor %}
+                <div id="timeError" class="text-danger small mt-1" style="display:none;">Оберіть доступний час.</div>
             </div>
 
             {{ form.submit(class="btn btn-primary", id="submitButton") }}
@@ -264,12 +148,10 @@
             <p class="mb-0">Email: tviy.notarius@gmail.com</p>
         </div> 
 
-        <div class="form-check" style="margin-top: 0;">
+        <div class="form-check">
             <input class="form-check-input" type="checkbox" id="privacyCheck">
-            <label class="form-check-label" for="privacyCheck" style="margin-bottom: 0;">
-                Я погоджуюся з політикою конфіденційності
-            </label>
-            <div id="privacyError" class="text-danger small" style="display:none;">Ви повинні погодитися з політикою конфіденційності.</div>
+            <label class="form-check-label" for="privacyCheck">Я погоджуюся з політикою конфіденційності</label>
+            <div id="privacyError" class="text-danger small" style="display:none;">Необхідно погодитися із політикою конфіденційності для подання заявки.</div>
         </div>
     </div>
 </div>
@@ -280,117 +162,138 @@ document.addEventListener("DOMContentLoaded", function () {
     const dateInput = document.getElementById("date");
     const serviceSelect = document.getElementById("service_select");
     const timeSelect = document.getElementById("time_id");
-    
     const serviceTrigger = document.getElementById("service_trigger");
-    const serviceOptions = document.getElementById("service_options");
     const timeTrigger = document.getElementById("time_trigger");
-    const timeOptions = document.getElementById("time_options");
-    
-    const infoButton = document.getElementById("infoButton");
     const privacyCheck = document.getElementById("privacyCheck");
-    const privacyError = document.getElementById("privacyError");
-    const weekendError = document.getElementById("weekendError");
 
     function toggleList(trigger, optionsContainer) {
-        const isActive = optionsContainer.classList.contains("show");
+        const isShow = optionsContainer.classList.contains("show");
         document.querySelectorAll('.custom-options').forEach(el => el.classList.remove("show"));
-        document.querySelectorAll('.custom-select-trigger').forEach(el => el.classList.remove("active"));
-
-        if (!isActive) {
-            optionsContainer.classList.add("show");
-            trigger.classList.add("active");
-        }
+        if (!isShow) optionsContainer.classList.add("show");
     }
 
-    function buildServiceList() {
-        const options = Array.from(serviceSelect.options).filter(opt => opt.value !== "" && opt.value !== "0");
-        serviceOptions.innerHTML = "";
+    const buildServiceList = () => {
+        const container = document.getElementById("service_options");
+        container.innerHTML = "";
+        const options = Array.from(serviceSelect.options).filter(opt => opt.value && opt.value !== "0");
         options.forEach((opt, index) => {
             const div = document.createElement("div");
             div.className = "custom-option";
-            const label = `${index + 1}. ${opt.textContent}`;
-            div.textContent = label;
-            div.onclick = function() {
+            div.textContent = `${index + 1}. ${opt.textContent}`;
+            div.onclick = () => {
                 serviceSelect.value = opt.value;
-                serviceTrigger.querySelector("span").textContent = label;
-                toggleList(serviceTrigger, serviceOptions);
+                serviceTrigger.querySelector("span").textContent = opt.textContent;
+                container.classList.remove("show");
+                document.getElementById("serviceError").style.display = "none";
                 updateInfoLink(opt.value);
             };
-            serviceOptions.appendChild(div);
+            container.appendChild(div);
         });
-    }
-
-    serviceTrigger.onclick = (e) => { e.stopPropagation(); toggleList(serviceTrigger, serviceOptions); };
+    };
 
     function updateInfoLink(val) {
+        const btn = document.getElementById("infoButton");
         if (val) {
-            infoButton.href = `/services#service-${val}`;
-            infoButton.style.opacity = "1";
-            infoButton.style.pointerEvents = "auto";
-        } else {
-            infoButton.style.opacity = "0.5";
-            infoButton.style.pointerEvents = "none";
+            btn.href = `/services#service-${val}`;
+            btn.style.opacity = "1";
+            btn.style.pointerEvents = "auto";
         }
     }
 
-    function loadTimesFor(dateStr) {
+    function loadTimes(dateStr) {
         timeTrigger.querySelector("span").textContent = "Завантаження...";
-        timeTrigger.classList.add("disabled");
-        
         fetch(`/appointments/available_times?date=${dateStr}`)
-            .then(response => response.json())
-            .then(times => {
-                timeOptions.innerHTML = "";
-                if (times && times.length > 0) {
-                    timeTrigger.querySelector("span").textContent = "Оберіть час візиту";
+            .then(r => r.json())
+            .then(data => {
+                const container = document.getElementById("time_options");
+                container.innerHTML = "";
+                timeSelect.innerHTML = '<option value="">---</option>';
+
+                if (data.length > 0) {
+                    timeTrigger.querySelector("span").textContent = "Оберіть час";
                     timeTrigger.classList.remove("disabled");
-                    times.forEach(t => {
+                    data.forEach(t => {
                         const div = document.createElement("div");
                         div.className = "custom-option";
                         div.textContent = t.display;
-                        div.onclick = function() {
+
+                        const opt = document.createElement("option");
+                        opt.value = t.id;
+                        opt.textContent = t.display;
+                        timeSelect.appendChild(opt);
+
+                        div.onclick = () => {
                             timeSelect.value = t.id;
                             timeTrigger.querySelector("span").textContent = t.display;
-                            toggleList(timeTrigger, timeOptions);
+                            container.classList.remove("show");
+                            document.getElementById("timeError").style.display = "none";
                         };
-                        timeOptions.appendChild(div);
+                        container.appendChild(div);
                     });
                 } else {
                     timeTrigger.querySelector("span").textContent = "Немає вільних годин";
+                    timeTrigger.classList.add("disabled");
                 }
             });
     }
 
-    timeTrigger.onclick = (e) => { e.stopPropagation(); if (!timeTrigger.classList.contains("disabled")) toggleList(timeTrigger, timeOptions); };
+    serviceTrigger.onclick = (e) => { e.stopPropagation(); toggleList(serviceTrigger, document.getElementById("service_options")); };
+    timeTrigger.onclick = (e) => { 
+        e.stopPropagation(); 
+        if (!timeTrigger.classList.contains("disabled")) {
+            toggleList(timeTrigger, document.getElementById("time_options")); 
+        }
+    };
+    
+    document.addEventListener("click", () => document.querySelectorAll('.custom-options').forEach(el => el.classList.remove("show")));
 
-    const today = new Date().toISOString().split('T')[0];
-    dateInput.setAttribute('min', today);
-    dateInput.addEventListener("change", function () {
-        const day = new Date(this.value).getUTCDay();
-        timeSelect.value = "";
-        timeTrigger.querySelector("span").textContent = "Спочатку оберіть дату";
-        timeTrigger.classList.add("disabled");
-        if (day === 0 || day === 6) {
-            this.value = ""; weekendError.style.display = "block";
-        } else {
-            weekendError.style.display = "none";
-            if (this.value) loadTimesFor(this.value);
+    // Зміна дати
+    dateInput.addEventListener("change", function() {
+        if (this.value) {
+            document.getElementById("dateError").style.display = "none";
+            const day = new Date(this.value).getUTCDay();
+            if (day === 0 || day === 6) {
+                this.value = ""; 
+                document.getElementById("weekendError").style.display = "block";
+                timeTrigger.classList.add("disabled");
+                timeTrigger.querySelector("span").textContent = "Спочатку оберіть дату";
+            } else {
+                document.getElementById("weekendError").style.display = "none";
+                loadTimes(this.value);
+            }
         }
     });
 
-    document.addEventListener("click", () => {
-        document.querySelectorAll('.custom-options').forEach(el => el.classList.remove("show"));
-        document.querySelectorAll('.custom-select-trigger').forEach(el => el.classList.remove("active"));
+    ["real_name", "real_email", "real_phone"].forEach(id => {
+        document.getElementById(id).addEventListener("input", function() {
+            const errorDiv = document.getElementById(this.id.replace("real_", "") + "Error");
+            if (errorDiv) errorDiv.style.display = "none";
+        });
     });
 
     form.addEventListener("submit", function (e) {
-        if (!privacyCheck.checked) {
-            e.preventDefault(); privacyError.style.display = "block";
-            privacyCheck.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        let valid = true;
+        
+        const name = document.getElementById('real_name');
+        const email = document.getElementById('real_email');
+        const phone = document.getElementById('real_phone');
+
+        if (!name.value.trim()) { document.getElementById("nameError").style.display = "block"; valid = false; }
+        if (!email.value.includes('@')) { document.getElementById("emailError").style.display = "block"; valid = false; }
+        if (!phone.value.match(/^\+?380\d{9}$/)) { document.getElementById("phoneError").style.display = "block"; valid = false; }
+        if (!serviceSelect.value || serviceSelect.value === "0") { document.getElementById("serviceError").style.display = "block"; valid = false; }
+        if (!dateInput.value) { document.getElementById("dateError").style.display = "block"; valid = false; }
+        if (!timeSelect.value || timeSelect.value === "") { document.getElementById("timeError").style.display = "block"; valid = false; }
+        if (!privacyCheck.checked) { document.getElementById("privacyError").style.display = "block"; valid = false; }
+
+        if (!valid) {
+            e.preventDefault();
+            const first = document.querySelector('.text-danger[style*="block"]');
+            if (first) first.scrollIntoView({ behavior: 'smooth', block: 'center' });
         }
     });
 
-    privacyCheck.addEventListener("change", function() { if (this.checked) privacyError.style.display = "none"; });
+    privacyCheck.onchange = () => { if(privacyCheck.checked) document.getElementById("privacyError").style.display = "none"; };
 
     buildServiceList();
 });

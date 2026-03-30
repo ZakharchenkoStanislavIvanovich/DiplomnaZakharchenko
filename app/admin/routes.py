@@ -24,6 +24,7 @@ def admin_required(f):
 def cleanup_tasks():
     now = datetime.now() 
     one_day_ago = now - timedelta(days=1)
+    
     all_rejected = Appointment.query.filter(
         Appointment._status == encrypt_data('відхилено')
     ).all()
@@ -32,7 +33,6 @@ def cleanup_tasks():
     
     for app in to_archive:
         submitted_at = app.created_at.strftime('%d.%m %H:%M')
-        
         archive_entry = ArchivedAppointment(
             original_id=app.slot_id,
             client_name=app.client.name,
@@ -48,9 +48,16 @@ def cleanup_tasks():
         db.session.add(archive_entry)
         db.session.delete(app)
     
-    three_days_ago = now - timedelta(days=3)
-    ArchivedAppointment.query.filter(ArchivedAppointment.deleted_at <= three_days_ago).delete()
     db.session.commit()
+
+@bp.route('/archive/delete/<int:id>', methods=['POST'])
+@login_required
+@admin_required
+def delete_archive_entry(id):
+    entry = ArchivedAppointment.query.get_or_404(id)
+    db.session.delete(entry)
+    db.session.commit()
+    return jsonify({'status': 'success'})
 
 @bp.route('/dashboard')
 @login_required
