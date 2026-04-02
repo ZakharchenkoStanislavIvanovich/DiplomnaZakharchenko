@@ -26,29 +26,37 @@ class User(UserMixin, db.Model):
 
 class Client(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    _name = db.Column('name', db.Text, nullable=False)
-    _email = db.Column('email', db.Text, nullable=False)
-    _phone = db.Column('phone', db.Text, nullable=True)
+    # Змінюємо 'name' на 'enc_name', щоб не було конфлікту з property 'name'
+    _name = db.Column('enc_name', db.Text, nullable=False)
+    _email = db.Column('enc_email', db.Text, nullable=False)
+    _phone = db.Column('enc_phone', db.Text, nullable=True)
 
     @property
-    def name(self): return decrypt_data(self._name)
+    def name(self): 
+        return decrypt_data(self._name)
     @name.setter
-    def name(self, value): self._name = encrypt_data(value)
+    def name(self, value): 
+        self._name = encrypt_data(value)
 
     @property
-    def email(self): return decrypt_data(self._email)
+    def email(self): 
+        return decrypt_data(self._email)
     @email.setter
-    def email(self, value): self._email = encrypt_data(value)
+    def email(self, value): 
+        self._email = encrypt_data(value)
 
     @property
-    def phone(self): return decrypt_data(self._phone)
+    def phone(self): 
+        return decrypt_data(self._phone) if self._phone else None
     @phone.setter
-    def phone(self, value): self._phone = encrypt_data(value)
+    def phone(self, value): 
+        self._phone = encrypt_data(value) if value else None
 
 class Service(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    _name = db.Column('name', db.Text, nullable=False)
-    _description = db.Column('description', db.Text)
+    # Змінюємо 'name' на 'enc_name'
+    _name = db.Column('enc_name', db.Text, nullable=False)
+    _description = db.Column('enc_description', db.Text)
 
     @property
     def name(self): return decrypt_data(self._name)
@@ -70,9 +78,9 @@ class Appointment(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     client_id = db.Column(db.Integer, db.ForeignKey('client.id'), nullable=False)
     service_id = db.Column(db.Integer, db.ForeignKey('service.id'), nullable=False)
-    slot_id = db.Column(db.Integer, db.ForeignKey('time_slot.id'), nullable=False)
-    _status = db.Column('status', db.Text, default=lambda: encrypt_data('очікує'))
-    _created_at = db.Column('created_at', db.Text, default=lambda: encrypt_data(datetime.now().isoformat()))
+    slot_id = db.Column(db.Integer, db.ForeignKey('time_slot.id'), unique=True, nullable=False)
+    _status = db.Column('enc_status', db.Text, default=lambda: encrypt_data('очікує'))
+    _created_at = db.Column('enc_created_at', db.Text, default=lambda: encrypt_data(datetime.now().isoformat()))
 
     @property
     def status(self): 

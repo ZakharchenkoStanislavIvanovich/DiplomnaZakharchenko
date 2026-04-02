@@ -26,7 +26,7 @@ def cleanup_tasks():
     one_day_ago = now - timedelta(days=1)
     
     all_rejected = Appointment.query.filter(
-        Appointment._status == encrypt_data('відхилено')
+    Appointment._status == encrypt_data('відхилено')
     ).all()
     
     to_archive = [a for a in all_rejected if a.created_at <= one_day_ago]
@@ -166,8 +166,14 @@ def delete_appointment(id):
 def add_service():
     name = request.form.get('name')
     description = request.form.get('description')
-    price = request.form.get('price', 0)
-    new_service = Service(name=name, description=description, price=price)
+    
+    # Створюємо об'єкт без аргументів
+    new_service = Service()
+    # Присвоюємо значення через сетери (це зашифрує дані)
+    new_service.name = name
+    new_service.description = description
+    
+    # Поле price видаляємо, бо його немає в моделі
     db.session.add(new_service)
     db.session.commit()
     return jsonify({'status': 'success'})
@@ -177,9 +183,11 @@ def add_service():
 @admin_required
 def edit_service(id):
     service = Service.query.get_or_404(id)
+    # Оновлюємо через властивості (це перешифрує дані)
     service.name = request.form.get('name')
     service.description = request.form.get('description')
-    service.price = request.form.get('price', 0)
+    
+    # service.price видаляємо
     db.session.commit()
     return jsonify({'status': 'success'})
 

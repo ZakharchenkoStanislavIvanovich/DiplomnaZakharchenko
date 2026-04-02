@@ -5,62 +5,75 @@ from app.appointments.forms import AppointmentForm
 from app.models import Appointment, TimeSlot, Client
 from datetime import datetime, timedelta
 from flask_mail import Message
+from app.utils import encrypt_data  # Імпортуємо твою функцію шифрування
+
+
+def is_booking_allowed(slot_date, slot_time):
+    """
+    Бізнес-логіка: перевіряє, чи доступне бронювання.
+    Запис можливий щонайменше за 12 годин до початку.
+    """
+    slot_dt = datetime.combine(slot_date, slot_time)
+    return slot_dt > datetime.now() + timedelta(hours=12)
 
 @bp.route("/book", methods=["GET", "POST"])
 def book():
     form = AppointmentForm()
 
     if request.method == "POST" and form.date.data:
-        min_limit = datetime.now() + timedelta(hours=12)
         all_slots = TimeSlot.query.filter_by(date=form.date.data, is_booked=False).order_by(TimeSlot.start_time).all()
-        
-        valid_choices = []
-        for s in all_slots:
-            slot_dt = datetime.combine(s.date, s.start_time)
-            if slot_dt > min_limit:
-                valid_choices.append((s.id, s.start_time.strftime("%H:%M")))
-        form.time_id.choices = valid_choices
+        form.time_id.choices = [(s.id, s.start_time.strftime("%H:%M")) for s in all_slots if is_booking_allowed(s.date, s.start_time)]
 
     if form.validate_on_submit():
-        client = Client(name=form.name.data, email=form.email.data, phone=form.phone.data)
-        db.session.add(client)
-        db.session.flush()
-
-        slot = TimeSlot.query.get(form.time_id.data)
-        
-        if slot:
-            slot_dt = datetime.combine(slot.date, slot.start_time)
-            if slot_dt < datetime.now() + timedelta(hours=12):
-                flash("Вибачте, запис на цей час вже неможливий (мінімум за 12 годин).", "danger")
+        try:
+            slot_id = int(form.time_id.data)
+            # Шукаємо слот, який ОБОВ'ЯЗКОВО має is_booked=False
+            slot = db.session.query(TimeSlot).filter_by(id=slot_id, is_booked=False).with_for_update().first()
+            
+            if not slot:
+                db.session.rollback()
+                # Якщо ми тут, значить інший потік ВЖЕ змінив is_booked на True
+                flash("Цей час уже заброньовано.", "danger")
                 return redirect(url_for("appointments.book"))
 
-        if not slot or slot.is_booked:
-            flash("Обраний час недоступний або вже заброньований.", "danger")
-            return redirect(url_for("appointments.book"))
+            client = Client()
+            client.name = form.name.data   # Передаємо чистий текст
+            client.email = form.email.data # Сетери в models.py самі все зашифрують
+            client.phone = form.phone.data
+            db.session.add(client)
+            db.session.flush()
 
-        appointment = Appointment(
-            client_id=client.id,
-            service_id=form.service_id.data,
-            slot_id=slot.id,
-            status="очікує"
-        )
-        db.session.add(appointment)
+            new_appointment = Appointment()
+            new_appointment.client_id = client.id
+            new_appointment.service_id = form.service_id.data
+            new_appointment.slot_id = slot.id
+            new_appointment.status = "очікує" # Тут спрацює сетер Appointment.status
+            db.session.add(new_appointment)
 
-        slot.is_booked = True
-        db.session.commit()
+            # 5. Міняємо статус слота
+            slot.is_booked = True
+            
+            # 6. ФІНАЛЬНИЙ КОМІТ (тільки тут блокировка знімається)
+            db.session.commit()
 
-        try:
-            msg = Message("Ваша заявка до нотаріуса отримана",
-                          recipients=[client.email])
-            msg.html = render_template('email/received.html', client=client, appointment=appointment)
-            mail.send(msg)
+            # 7. Відправка Email (після коміту, щоб не тримати базу)
+            try:
+                msg = Message("Запис підтверджено", recipients=[form.email.data])
+                # Виправляємо помилку: передаємо об'єкт як 'appointment'
+                msg.html = render_template('email/received.html', 
+                                         client=client, 
+                                         appointment=new_appointment) 
+                mail.send(msg)
+            except Exception as mail_err:
+                print(f"Mail error: {mail_err}")
+
+            return redirect(url_for("appointments.success"))
+
         except Exception as e:
-            print(f"DEBUG: Помилка відправки пошти: {e}")
-
-        return redirect(url_for("appointments.success"))
-
-    if request.method == "POST" and not form.validate_on_submit():
-        flash("Перевірте введені дані.", "danger")
+            db.session.rollback()
+            print(f"Database error: {e}")
+            flash("Помилка при бронюванні. Спробуйте ще раз.", "danger")
+            return redirect(url_for("appointments.book"))
 
     return render_template("appointments/book.html", form=form)
 
@@ -71,22 +84,15 @@ def available_times():
         return jsonify([])
     try:
         selected_date = datetime.strptime(date_str, "%Y-%m-%d").date()
-    except:
+    except ValueError:
         return jsonify([])
 
-    min_limit = datetime.now() + timedelta(hours=12)
     slots = TimeSlot.query.filter_by(date=selected_date, is_booked=False).order_by(TimeSlot.start_time).all()
     
-    available_data = []
-    for s in slots:
-        slot_dt = datetime.combine(s.date, s.start_time)
-        if slot_dt > min_limit:
-            available_data.append({
-                "id": s.id, 
-                "display": s.start_time.strftime("%H:%M")
-            })
-            
-    return jsonify(available_data)
+    return jsonify([{
+        "id": s.id, 
+        "display": s.start_time.strftime("%H:%M")
+    } for s in slots if is_booking_allowed(s.date, s.start_time)])
 
 @bp.route("/success")
 def success():

@@ -3,6 +3,7 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
 from flask_login import LoginManager
 from flask_mail import Mail
+from flask_wtf.csrf import CSRFProtect  # 1. ДОДАЙ ЦЕЙ ІМПОРТ
 from config import Config
 from sqlalchemy import event
 
@@ -10,6 +11,7 @@ db = SQLAlchemy()
 migrate = Migrate()
 login = LoginManager()
 mail = Mail()
+csrf = CSRFProtect()
 
 login.login_view = 'auth.login'
 login.login_message = "Будь ласка, увійдіть, щоб отримати доступ до цієї сторінки."
@@ -27,16 +29,18 @@ def create_app(config_class=Config):
 
     db.init_app(app)
 
+    csrf.init_app(app)
+
+    migrate.init_app(app, db)
+    login.init_app(app)
+    mail.init_app(app)
+
     with app.app_context():
         @event.listens_for(db.engine, "connect")
         def set_webapp_timezone(dbapi_connection, connection_record):
             cursor = dbapi_connection.cursor()
             cursor.execute("SET TIME ZONE 'Europe/Kyiv'")
             cursor.close()
-
-    migrate.init_app(app, db)
-    login.init_app(app)
-    mail.init_app(app)
 
     from app.main import bp as main_bp
     app.register_blueprint(main_bp)

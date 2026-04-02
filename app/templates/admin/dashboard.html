@@ -61,8 +61,8 @@
                             <td>{{ app.service.name }}</td>
                             <td>{{ app.slot.date.strftime('%d.%m.%Y') }} | {{ app.slot.start_time.strftime('%H:%M') }}</td>
                             <td class="small text-dark">
-                                {{ app.created_at.strftime('%d.%m.%Y') }}<br>
-                                {{ app.created_at.strftime('%H:%M') }}
+                                {{ app.created_at.strftime('%d.%m.%Y') if app.created_at else '---' }}<br>
+                                {{ app.created_at.strftime('%H:%M') if app.created_at else '' }}
                             </td>
                             <td>
                                 <span class="badge {% if app.status == 'підтверджено' %}bg-success{% elif app.status == 'відхилено' %}bg-danger{% else %}bg-warning text-dark{% endif %}">
@@ -113,13 +113,18 @@
                                 <td>{{ loop.index }}</td>
                                 <td><strong>{{ s.name }}</strong></td>
                                 <td style="color: black;">
-                                    {% set parts = s.description.split('|') %}
-                                    <div class="mb-2">{{ parts[0] }}</div>
-                                    {% if parts|length > 1 %}
-                                    <div class="small p-2" style="background-color: #f8f9fa; border-left: 3px solid #6c757d; border-radius: 4px;">
-                                        <strong style="color: #495057; font-size: 0.75rem; text-transform: uppercase;">Необхідні документи:</strong><br>
-                                        <span class="text-muted">{{ parts[1] }}</span>
-                                    </div>
+                                    {% if s.description and '|' in s.description %}
+                                        {% set parts = s.description.split('|') %}
+                                        <div class="mb-2"><strong>{{ parts[0] }}</strong></div>
+                                        
+                                        {% if parts|length > 1 %}
+                                        <div class="small p-2" style="background-color: #f8f9fa; border-left: 3px solid #6c757d; border-radius: 4px;">
+                                            <strong style="color: #495057; font-size: 0.75rem; text-transform: uppercase;">Необхідні документи:</strong><br>
+                                            <span class="text-muted">{{ parts[1] }}</span>
+                                        </div>
+                                        {% endif %}
+                                    {% else %}
+                                        <div class="mb-2">{{ s.description if s.description else 'Опис відсутній' }}</div>
                                     {% endif %}
                                 </td>
                                 <td class="text-center actions-column">
@@ -185,7 +190,17 @@
                                                             {% else %}
                                                                 slot-free
                                                             {% endif %}"
-                                                            onclick="openInfo('{{ slot.start_time.strftime('%H:%M') }}', '{{ slot.date.strftime('%d.%m.%Y') }}', '{{ (active_app.client.name if active_app else (arch_app.client_name if (arch_app and is_past) else ''))|replace("'", "\\'") }}', '{{ (active_app.service.name if active_app else (arch_app.service_name if (arch_app and is_past) else ''))|replace("'", "\\'") }}', '{{ (active_app.status if active_app else (arch_app.status if (arch_app and is_past) else '')) }}', '{{ active_app.id if active_app else '' }}', '{{ (active_app.client.email if active_app else (arch_app.client_email if (arch_app and is_past) else '')) }}', {{ 'true' if (is_past and not active_app and not (arch_app and is_past)) else 'false' }}, '{{ (active_app.client.phone if active_app else (arch_app.client_phone if (arch_app and is_past) else '')) }}')">
+                                                            onclick="openInfo(
+                                                                '{{ slot.start_time.strftime('%H:%M') }}', 
+                                                                '{{ slot.date.strftime('%d.%m.%Y') }}', 
+                                                                '{{ (active_app.client.name if active_app else (arch_app.client_name if (arch_app and is_past) else ''))|replace("'", "\\'") }}', 
+                                                                '{{ (active_app.service.name if active_app else (arch_app.service_name if (arch_app and is_past) else ''))|replace("'", "\\'") }}', 
+                                                                '{{ (active_app.status if active_app else (arch_app.status if (arch_app and is_past) else '')) }}', 
+                                                                '{{ active_app.id if active_app else '' }}', 
+                                                                '{{ (active_app.client.email if active_app else (arch_app.client_email if (arch_app and is_past) else '')) }}', 
+                                                                {{ 'true' if (is_past and not active_app and not (arch_app and is_past)) else 'false' }}, 
+                                                                '{{ (active_app.client.phone if active_app else (arch_app.client_phone if (arch_app and is_past) else '')) }}'
+                                                            )">
                                                             {{ slot.start_time.strftime('%H:%M') }}
                                                             {% if arch_app and is_past and not active_app %}<div style="font-size:7px; color:black; font-weight:bold; line-height:1;">АРХІВ</div>{% endif %}
                                                         </div>
@@ -213,18 +228,27 @@
                             </div>
 
                             <div class="accordion shadow-sm" id="searchAccordionRight">
-                                {% set found_any_app = false %}
+                                {# Використовуємо namespace для відстеження стану поза циклом #}
+                                {% set ns = namespace(found=false) %}
+                                
                                 {% for monday in weeks|sort %}
-                                    {% set week_has_apps = false %}
+                                    {% set week_apps = [] %}
+                                    
                                     {% for d_offset in range(5) %}
-                                        {% set d_key_check = (monday + relativedelta(days=d_offset)).strftime('%Y-%m-%d') %}
-                                        {% for slot in calendar_data.get(d_key_check, []) %}
-                                            {% if slot.appointments or archived_map.get(slot.id|string) %}{% set week_has_apps = true %}{% endif %}
+                                        {% set d_curr = monday + relativedelta(days=d_offset) %}
+                                        {% set d_key = d_curr.strftime('%Y-%m-%d') %}
+                                        {% for slot in calendar_data.get(d_key, []) %}
+                                            {% set app = slot.appointments[0] if slot.appointments else None %}
+                                            {% set arch_app = archived_map.get(slot.id|string) %}
+                                            {% if app or arch_app %}
+                                                {# Додаємо в список, якщо знайшли хоча б щось #}
+                                                {% set _ = week_apps.append({'slot': slot, 'app': app, 'arch': arch_app, 'date': d_curr}) %}
+                                            {% endif %}
                                         {% endfor %}
                                     {% endfor %}
 
-                                    {% if week_has_apps %}
-                                        {% set found_any_app = true %}
+                                    {% if week_apps %}
+                                        {% set ns.found = true %}
                                         <div class="accordion-item mb-2" style="border-radius: 8px !important; overflow: hidden; border: 1px solid #dee2e6;">
                                             <h2 class="accordion-header">
                                                 <button class="accordion-button collapsed p-3 fw-bold" type="button" data-bs-toggle="collapse" data-bs-target="#searchWeekCol{{ loop.index }}" style="font-size: 0.85rem; background-color: #f8f9fa;">
@@ -234,32 +258,34 @@
                                             <div id="searchWeekCol{{ loop.index }}" class="accordion-collapse collapse" data-bs-parent="#searchAccordionRight">
                                                 <div class="accordion-body p-0 bg-white">
                                                     <div class="list-group list-group-flush">
-                                                    {% for d_offset in range(5) %}
-                                                        {% set d_curr = monday + relativedelta(days=d_offset) %}
-                                                        {% for slot in calendar_data.get(d_curr.strftime('%Y-%m-%d'), [])|sort(attribute='start_time') %}
-                                                            {% set app = slot.appointments[0] if slot.appointments else None %}
-                                                            {% set arch_app = archived_map.get(slot.id|string) %}
-                                                            {% set is_past = (slot.date.strftime('%Y-%m-%d') ~ ' ' ~ slot.start_time.strftime('%H:%M')) < now.strftime('%Y-%m-%d %H:%M') %}
-                                                            {% if app or (arch_app and is_past) %}
-                                                                {% set c_name = app.client.name if app else arch_app.client_name %}
-                                                                <button class="list-group-item list-group-item-action px-3 py-2 border-bottom bg-transparent search-client-item" onclick="goToCalendarSlot('{{ slot.id }}', '{{ monday.strftime('%Y-%m-%d') }}')" data-client-name="{{ c_name|lower }}" data-monday="{{ monday.strftime('%Y-%m-%d') }}" data-slot-id="{{ slot.id }}" style="border: none;">
-                                                                    <div class="d-flex justify-content-between align-items-center mb-1">
-                                                                        <span class="small text-muted">{{ d_curr.strftime('%d.%m') }} <strong>{{ slot.start_time.strftime('%H:%M') }}</strong></span>
-                                                                        <span class="badge {% if app %}{% if app.status=='підтверджено' %}bg-success{% elif app.status=='відхилено' %}bg-danger{% else %}bg-warning text-dark{% endif %}{% else %}bg-secondary{% endif %}" style="font-size: 0.6rem;">{{ app.status if app else 'АРХІВ' }}</span>
-                                                                    </div>
-                                                                    <div class="text-dark fw-bold small">{{ c_name }}</div>
-                                                                    <div class="small text-muted text-truncate" style="font-size: 0.75rem;">{{ app.service.name if app else arch_app.service_name }}</div>
-                                                                </button>
-                                                            {% endif %}
+                                                        {% for item in week_apps|sort(attribute='slot.start_time') %}
+                                                            {% set c_name = item.app.client.name if item.app else item.arch.client_name %}
+                                                            {% set s_name = item.app.service.name if item.app else item.arch.service_name %}
+                                                            {% set status = item.app.status if item.app else 'АРХІВ' %}
+                                                            
+                                                            <button class="list-group-item list-group-item-action px-3 py-2 border-bottom bg-transparent search-client-item" 
+                                                                    onclick="goToCalendarSlot('{{ item.slot.id }}', '{{ monday.strftime('%Y-%m-%d') }}')" 
+                                                                    data-client-name="{{ c_name|lower }}" 
+                                                                    data-monday="{{ monday.strftime('%Y-%m-%d') }}" 
+                                                                    data-slot-id="{{ item.slot.id }}" 
+                                                                    style="border: none;">
+                                                                <div class="d-flex justify-content-between align-items-center mb-1">
+                                                                    <span class="small text-muted">{{ item.date.strftime('%d.%m') }} <strong>{{ item.slot.start_time.strftime('%H:%M') }}</strong></span>
+                                                                    <span class="badge {% if item.app %}{% if status=='підтверджено' %}bg-success{% elif status=='відхилено' %}bg-danger{% else %}bg-warning text-dark{% endif %}{% else %}bg-secondary{% endif %}" style="font-size: 0.6rem;">{{ status }}</span>
+                                                                </div>
+                                                                <div class="text-dark fw-bold small">{{ c_name }}</div>
+                                                                <div class="small text-muted text-truncate" style="font-size: 0.75rem;">{{ s_name }}</div>
+                                                            </button>
                                                         {% endfor %}
-                                                    {% endfor %}
                                                     </div>
                                                 </div>
                                             </div>
                                         </div>
                                     {% endif %}
                                 {% endfor %}
-                                {% if not found_any_app %}
+
+                                {# Тепер ns.found спрацює правильно #}
+                                {% if not ns.found %}
                                     <div class="text-center py-4 bg-light rounded border"><p class="text-muted small mb-0">Наразі немає активних чи архівованих заявок</p></div>
                                 {% endif %}
                             </div>
@@ -410,6 +436,7 @@
     <div class="modal fade" id="serviceModal" tabindex="-1">
         <div class="modal-dialog">
             <form id="serviceForm" class="modal-content shadow">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <input type="hidden" id="service-id">
                 <div class="modal-header bg-olive text-white"><h5>Послуга</h5><button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button></div>
                 <div class="modal-body">
@@ -425,6 +452,8 @@
     </div>
 </div>
 <script>
+const CSRF_TOKEN = "{{ csrf_token() }}";
+
 function switchTab(targetId) {
     document.querySelectorAll('.nav-link').forEach(el => el.classList.remove('active'));
     document.querySelectorAll('.tab-pane').forEach(el => el.classList.remove('show', 'active'));
@@ -506,18 +535,12 @@ function goToApp(id) {
 }
 
 async function confirmDelete(id) { 
-    if (confirm("Ви впевнені, що хочете перенести цю заявку до архіву?\n\nЗаявка зникне зі списку активних, а цей час знову стане вільним для запису інших клієнтів.")) { 
-        const response = await fetch(`/admin/delete_appointment/${id}`, {method:'POST'}); 
-        if (response.ok) {
-            const row = document.getElementById(`row-${id}`);
-            if (row) {
-                row.style.transition = "opacity 0.4s ease";
-                row.style.opacity = "0";
-                setTimeout(() => window.location.reload(), 400);
-            } else {
-                window.location.reload(); 
-            }
-        }
+    if (confirm("Ви впевнені, що бажаєте перенести цю заявку в архів? УВАГА: ЦЯ ДІЯ НЕЗВОРОТНА!")) { 
+        const response = await fetch(`/admin/delete_appointment/${id}`, {
+            method:'POST',
+            headers: { 'X-CSRFToken': CSRF_TOKEN }
+        }); 
+        if (response.ok) window.location.reload();
     } 
 }
 
@@ -529,7 +552,10 @@ document.querySelectorAll('.action-btn').forEach(btn => {
         
         const response = await fetch(`/admin/update_status/${id}`, {
             method:'POST', 
-            headers:{'Content-Type':'application/json'}, 
+            headers:{
+                'Content-Type':'application/json',
+                'X-CSRFToken': CSRF_TOKEN // ДОДАНО ТУТ
+            }, 
             body:JSON.stringify({action:act, note:note})
         });
         
@@ -549,11 +575,24 @@ document.getElementById('serviceForm').onsubmit = async (e) => {
     const fd = new FormData(); 
     fd.append('name', document.getElementById('m-name').value); 
     fd.append('description', document.getElementById('m-desc').value);
-    await fetch(id ? `/admin/services/edit/${id}` : '/admin/services/add', { method: 'POST', body: fd });
+    
+    // ДОДАНО HEADERS ДЛЯ CSRF
+    await fetch(id ? `/admin/services/edit/${id}` : '/admin/services/add', { 
+        method: 'POST', 
+        body: fd,
+        headers: { 'X-CSRFToken': CSRF_TOKEN } 
+    });
     window.location.reload();
 };
-async function deleteService(id) { if(confirm("Видалити послугу?")) { await fetch(`/admin/services/delete/${id}`, {method:'POST'}); window.location.reload(); } }
-
+async function deleteService(id) { 
+    if(confirm("Видалити послугу?")) { 
+        await fetch(`/admin/services/delete/${id}`, {
+            method: 'POST',
+            headers: { 'X-CSRFToken': CSRF_TOKEN }
+        }); 
+        window.location.reload(); 
+    } 
+}
 function checkDay(input, errorId) {
     const d = new Date(input.value).getUTCDay();
     if (d === 0 || d === 6) {
@@ -569,7 +608,10 @@ async function loadPreview() {
     if(!date) return alert("Оберіть дату.");
     const res = await fetch('/admin/preview_slots', { 
         method: 'POST', 
-        headers: {'Content-Type': 'application/json'}, 
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': CSRF_TOKEN // ДОДАНО
+        }, 
         body: JSON.stringify({
             date: date, 
             start_time: document.getElementById('s-start').value, 
@@ -591,9 +633,13 @@ async function saveSlots() {
     const startDate = document.getElementById('s-date').value;
     const period = parseInt(document.getElementById('s-period').value);
     if(!times.length) return alert("Оберіть часові слоти.");
+    
     await fetch('/admin/bulk_generate_slots', { 
         method: 'POST', 
-        headers: {'Content-Type': 'application/json'}, 
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': CSRF_TOKEN // ДОДАНО ТУТ
+        }, 
         body: JSON.stringify({start_date: startDate, times: times, period: period}) 
     });
     window.location.reload();
@@ -611,7 +657,10 @@ async function bulkDelete() {
     if(!ids.length || !confirm("Видалити обрані слоти?")) return;
     await fetch('/admin/delete_slots', { 
         method: 'POST', 
-        headers: {'Content-Type': 'application/json'}, 
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': CSRF_TOKEN
+        }, 
         body: JSON.stringify({ids: ids}) 
     });
     window.location.reload();
@@ -683,6 +732,7 @@ function searchClient() {
 
     for (let item of items) {
         const clientName = item.getAttribute('data-client-name');
+        console.log("Searching in:", clientName);
         if (clientName.includes(query)) {
             const monday = item.getAttribute('data-monday');
             const slotId = item.getAttribute('data-slot-id');

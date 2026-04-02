@@ -6,14 +6,17 @@
         <div class="col-md-4">
             <h2 class="text-center mb-4">Вхід для персоналу</h2>
             <form method="POST">
-                <div class="mb-3">
+                {{ form.csrf_token }} <div class="mb-3">
                     <label class="form-label">Email</label>
-                    <input type="email" name="email" class="form-control" required>
+                    <input type="email" name="email" class="form-control" 
+                        value="{{ form.email.data if form.email.data else '' }}" required>
                 </div>
+                
                 <div class="mb-3">
                     <label class="form-label">Пароль</label>
                     <input type="password" name="password" class="form-control" required>
                 </div>
+                
                 <button type="submit" class="btn btn-primary w-100">Увійти</button>
             </form>
         </div>

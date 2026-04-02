@@ -66,6 +66,7 @@
                             </div>
 
                             <form action="{{ url_for('admin.upload_photo') }}" method="POST" enctype="multipart/form-data" class="mb-4">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                 <label class="form-label small fw-bold">Завантажити нове фото:</label>
                                 <div class="input-group">
                                     <input type="file" name="photo" class="form-control form-control-sm" accept="image/*" required>
@@ -106,20 +107,32 @@
 
             <script>
             function setActivePhoto(id) {
-                fetch(`/admin/photos/set_active/${id}`, {method: 'POST'})
+                fetch(`/admin/photos/set_active/${id}`, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': '{{ csrf_token() }}' // Додаємо токен сюди
+                    }
+                })
                 .then(res => res.json())
                 .then(data => {
                     if(data.status === 'success') location.reload();
+                    else alert('Помилка: ' + (data.message || 'невідома помилка'));
                 });
             }
+
             function deletePhoto(event, id) {
                 event.stopPropagation();
                 if(confirm('Видалити це фото назавжди?')) {
-                    fetch(`/admin/photos/delete/${id}`, {method: 'POST'})
+                    fetch(`/admin/photos/delete/${id}`, {
+                        method: 'POST',
+                        headers: {
+                            'X-CSRFToken': '{{ csrf_token() }}' // І сюди теж
+                        }
+                    })
                     .then(res => res.json())
                     .then(data => {
                         if(data.status === 'success') location.reload();
-                        else alert(data.message);
+                        else alert('Помилка: ' + (data.message || 'невідома помилка'));
                     });
                 }
             }
