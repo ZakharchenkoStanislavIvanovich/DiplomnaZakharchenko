@@ -22,35 +22,46 @@ def admin_required(f):
     return decorated_function
 
 def cleanup_tasks():
-    now = datetime.now() 
+    now = datetime.now()
     one_day_ago = now - timedelta(days=1)
     
-    all_rejected = Appointment.query.filter(
-    Appointment._status == encrypt_data('відхилено')
-    ).all()
+    all_appointments = Appointment.query.all()
     
-    to_archive = [a for a in all_rejected if a.created_at <= one_day_ago]
+    to_archive = []
+    for app in all_appointments:
+        if app.status == 'відхилено' and app.created_at <= one_day_ago:
+            to_archive.append(app)
     
     for app in to_archive:
-        submitted_at = app.created_at.strftime('%d.%m %H:%M')
-        archive_entry = ArchivedAppointment(
-            original_id=app.slot_id,
-            client_name=app.client.name,
-            client_email=app.client.email,
-            client_phone=app.client.phone,
-            service_name=app.service.name,
-            slot_info=f"{app.slot.date.strftime('%d.%m.%Y')} {app.slot.start_time.strftime('%H:%M')} | {submitted_at}",
-            status=app.status,
-            deletion_type='automatic'
-        )
-        if app.slot:
-            app.slot.is_booked = False
-        db.session.add(archive_entry)
-        db.session.delete(app)
+        try:
+            submitted_at = app.created_at.strftime('%d.%m %H:%M') if app.created_at else "---"
+            
+            archive_entry = ArchivedAppointment()
+            archive_entry.original_id = app.slot_id
+            archive_entry.client_name = app.client.name
+            archive_entry.client_email = app.client.email
+            archive_entry.client_phone = app.client.phone
+            archive_entry.service_name = app.service.name
+            archive_entry.status = app.status
+            archive_entry.deletion_type = 'automatic'
+            
+            slot_date = app.slot.date.strftime('%d.%m.%Y') if app.slot else "---"
+            slot_time = app.slot.start_time.strftime('%H:%M') if app.slot else "---"
+            archive_entry.slot_info = f"{slot_date} {slot_time} | Створено: {submitted_at}"
+            
+            if app.slot:
+                app.slot.is_booked = False
+                
+            db.session.add(archive_entry)
+            db.session.delete(app)
+        except Exception as e:
+            db.session.rollback()
+            print(f"Помилка архівації запису {app.id}: {e}")
+            continue
     
     db.session.commit()
 
-@bp.route('/archive/delete/<int:id>', methods=['POST'])
+@bp.route('/archive/delete/<int:id>/', methods=['POST']) 
 @login_required
 @admin_required
 def delete_archive_entry(id):
@@ -278,7 +289,12 @@ def get_notifications():
         today_date = now.date()
         
         cleanup_tasks()
+        
         all_apps = Appointment.query.all()
+        recent_auto_archived = ArchivedAppointment.query.filter(
+            ArchivedAppointment._deletion_type == encrypt_data('automatic'),
+            ArchivedAppointment.deleted_at >= (now - timedelta(days=1))
+        ).all()
         
         today_apps = [a for a in all_apps if a.slot.date == today_date and a.status == 'підтверджено']
         if today_apps:
@@ -293,10 +309,21 @@ def get_notifications():
                     'slot_id': a.slot.id,
                     'monday_key': monday.strftime('%Y-%m-%d')
                 })
+            notifications.append({'id': 'g_today', 'header': 'План на сьогодні', 'items': today_items})
+
+        if recent_auto_archived:
+            archive_items = []
+            for ar in recent_auto_archived:
+                archive_items.append({
+                    'id': f"archived_{ar.id}",
+                    'text': f"Архівовано: {ar.client_name} (відхилено)",
+                    'time': ar.deleted_at.strftime('%H:%M'),
+                    'tab': 'archive'
+                })
             notifications.append({
-                'id': 'g_today',
-                'header': 'План на сьогодні',
-                'items': today_items
+                'id': 'g_auto_archive',
+                'header': 'Автоматичний архів (24г)',
+                'items': archive_items
             })
 
         new_items = []
@@ -310,18 +337,13 @@ def get_notifications():
             
             if a.status == 'очікує':
                 email = a.client.email
-                if email not in pending_clients:
-                    pending_clients[email] = []
+                if email not in pending_clients: pending_clients[email] = []
                 pending_clients[email].append(a)
 
                 diff = now - upd_time
                 hours_passed = int(diff.total_seconds() // 3600)
-                item_data = {
-                    'id': f"app_{a.id}", 
-                    'text': f"{a.client.name} | {a.service.name}", 
-                    'time': upd_time.strftime('%H:%M'), 
-                    'tab': 'apps'
-                }
+                item_data = {'id': f"app_{a.id}", 'text': f"{a.client.name} | {a.service.name}", 'time': upd_time.strftime('%H:%M'), 'tab': 'apps'}
+                
                 if hours_passed >= 6:
                     item_data['text'] = f"УВАГА: {a.client.name} чекає понад {hours_passed} год"
                     urgent_items.append(item_data)
@@ -330,8 +352,7 @@ def get_notifications():
             
             elif a.status == 'підтверджено' and slot_dt < now:
                 diff_past = now - slot_dt
-                hours_past = int(diff_past.total_seconds() // 3600)
-                if hours_past >= 6:
+                if int(diff_past.total_seconds() // 3600) >= 6:
                     recommend_archive_items.append({
                         'id': f"rec_{a.id}",
                         'text': f"Завершено: {a.client.name} ({a.slot.date.strftime('%d.%m')})",
@@ -342,15 +363,9 @@ def get_notifications():
         duplicate_items = []
         for email, apps in pending_clients.items():
             if len(apps) > 1:
-                duplicate_items.append({
-                    'id': f"dup_{email}",
-                    'text': f"Клієнт {apps[0].client.name} створив {len(apps)} заявки",
-                    'time': now.strftime('%H:%M'),
-                    'tab': 'apps'
-                })
-        if duplicate_items:
-            notifications.append({'id': 'g_dups', 'header': 'Повторні заявки', 'items': duplicate_items})
-
+                duplicate_items.append({'id': f"dup_{email}", 'text': f"Клієнт {apps[0].client.name} створив {len(apps)} заявки", 'time': now.strftime('%H:%M'), 'tab': 'apps'})
+        
+        if duplicate_items: notifications.append({'id': 'g_dups', 'header': 'Повторні заявки', 'items': duplicate_items})
         if urgent_items: notifications.append({'id': 'g_urgent', 'header': 'ТЕРМІНОВІ', 'items': urgent_items})
         if recommend_archive_items: notifications.append({'id': 'g_recommend', 'header': 'Рекомендовано до архіву', 'items': recommend_archive_items})
         if new_items: notifications.append({'id': 'g_new', 'header': 'Нові заявки', 'items': new_items})

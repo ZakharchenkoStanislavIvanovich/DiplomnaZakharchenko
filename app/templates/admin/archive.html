@@ -3,6 +3,11 @@
 {% block title %}Архів заявок{% endblock %}
 
 {% block content %}
+
+<head>
+<meta name="csrf-token" content="{{ csrf_token() }}">
+</head>
+
 <div class="container mt-5">
     <div class="d-flex justify-content-between align-items-center mb-2">
         <h1 class="fw-bold">Архів заявок</h1>
@@ -106,21 +111,32 @@
 function deleteArchiveEntry(id, btn) {
     if (confirm('Ви впевнені, що хочете видалити цей запис назавжди?')) {
         const item = btn.closest('.list-group-item');
-        
-        fetch(`/admin/archive/delete/${id}`, {
+        const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+
+        fetch(`/admin/archive/delete/${id}/`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' }
+            headers: { 
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrfToken
+            }
         })
-        .then(response => response.json())
+        .then(response => {
+            if (!response.ok) throw new Error('Помилка сервера');
+            return response.json();
+        })
         .then(data => {
             if (data.status === 'success') {
                 item.remove();
+                
                 if (document.querySelectorAll('.list-group-item').length === 0) {
                     location.reload();
                 }
             }
         })
-        .catch(error => console.error('Error:', error));
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Не вдалося видалити запис');
+        });
     }
 }
 </script>
