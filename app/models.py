@@ -26,7 +26,6 @@ class User(UserMixin, db.Model):
 
 class Client(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    # Змінюємо 'name' на 'enc_name', щоб не було конфлікту з property 'name'
     _name = db.Column('enc_name', db.Text, nullable=False)
     _email = db.Column('enc_email', db.Text, nullable=False)
     _phone = db.Column('enc_phone', db.Text, nullable=True)
@@ -54,7 +53,6 @@ class Client(db.Model):
 
 class Service(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    # Змінюємо 'name' на 'enc_name'
     _name = db.Column('enc_name', db.Text, nullable=False)
     _description = db.Column('enc_description', db.Text)
 

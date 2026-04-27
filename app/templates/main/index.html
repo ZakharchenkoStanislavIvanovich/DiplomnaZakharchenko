@@ -110,7 +110,7 @@
                 fetch(`/admin/photos/set_active/${id}`, {
                     method: 'POST',
                     headers: {
-                        'X-CSRFToken': '{{ csrf_token() }}' // Додаємо токен сюди
+                        'X-CSRFToken': '{{ csrf_token() }}'
                     }
                 })
                 .then(res => res.json())
@@ -126,7 +126,7 @@
                     fetch(`/admin/photos/delete/${id}`, {
                         method: 'POST',
                         headers: {
-                            'X-CSRFToken': '{{ csrf_token() }}' // І сюди теж
+                            'X-CSRFToken': '{{ csrf_token() }}'
                         }
                     })
                     .then(res => res.json())

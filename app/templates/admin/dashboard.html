@@ -228,7 +228,6 @@
                             </div>
 
                             <div class="accordion shadow-sm" id="searchAccordionRight">
-                                {# Використовуємо namespace для відстеження стану поза циклом #}
                                 {% set ns = namespace(found=false) %}
                                 
                                 {% for monday in weeks|sort %}
@@ -241,7 +240,6 @@
                                             {% set app = slot.appointments[0] if slot.appointments else None %}
                                             {% set arch_app = archived_map.get(slot.id|string) %}
                                             {% if app or arch_app %}
-                                                {# Додаємо в список, якщо знайшли хоча б щось #}
                                                 {% set _ = week_apps.append({'slot': slot, 'app': app, 'arch': arch_app, 'date': d_curr}) %}
                                             {% endif %}
                                         {% endfor %}
@@ -284,7 +282,6 @@
                                     {% endif %}
                                 {% endfor %}
 
-                                {# Тепер ns.found спрацює правильно #}
                                 {% if not ns.found %}
                                     <div class="text-center py-4 bg-light rounded border"><p class="text-muted small mb-0">Наразі немає активних чи архівованих заявок</p></div>
                                 {% endif %}
@@ -554,7 +551,7 @@ document.querySelectorAll('.action-btn').forEach(btn => {
             method:'POST', 
             headers:{
                 'Content-Type':'application/json',
-                'X-CSRFToken': CSRF_TOKEN // ДОДАНО ТУТ
+                'X-CSRFToken': CSRF_TOKEN
             }, 
             body:JSON.stringify({action:act, note:note})
         });
@@ -576,7 +573,6 @@ document.getElementById('serviceForm').onsubmit = async (e) => {
     fd.append('name', document.getElementById('m-name').value); 
     fd.append('description', document.getElementById('m-desc').value);
     
-    // ДОДАНО HEADERS ДЛЯ CSRF
     await fetch(id ? `/admin/services/edit/${id}` : '/admin/services/add', { 
         method: 'POST', 
         body: fd,

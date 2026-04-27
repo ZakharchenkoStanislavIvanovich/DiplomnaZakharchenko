@@ -5,7 +5,7 @@ from app.appointments.forms import AppointmentForm
 from app.models import Appointment, TimeSlot, Client
 from datetime import datetime, timedelta
 from flask_mail import Message
-from app.utils import encrypt_data  # Імпортуємо твою функцію шифрування
+from app.utils import encrypt_data
 
 
 def is_booking_allowed(slot_date, slot_time):
@@ -27,18 +27,16 @@ def book():
     if form.validate_on_submit():
         try:
             slot_id = int(form.time_id.data)
-            # Шукаємо слот, який ОБОВ'ЯЗКОВО має is_booked=False
             slot = db.session.query(TimeSlot).filter_by(id=slot_id, is_booked=False).with_for_update().first()
             
             if not slot:
                 db.session.rollback()
-                # Якщо ми тут, значить інший потік ВЖЕ змінив is_booked на True
                 flash("Цей час уже заброньовано.", "danger")
                 return redirect(url_for("appointments.book"))
 
             client = Client()
-            client.name = form.name.data   # Передаємо чистий текст
-            client.email = form.email.data # Сетери в models.py самі все зашифрують
+            client.name = form.name.data
+            client.email = form.email.data
             client.phone = form.phone.data
             db.session.add(client)
             db.session.flush()
@@ -47,19 +45,15 @@ def book():
             new_appointment.client_id = client.id
             new_appointment.service_id = form.service_id.data
             new_appointment.slot_id = slot.id
-            new_appointment.status = "очікує" # Тут спрацює сетер Appointment.status
+            new_appointment.status = "очікує"
             db.session.add(new_appointment)
 
-            # 5. Міняємо статус слота
             slot.is_booked = True
             
-            # 6. ФІНАЛЬНИЙ КОМІТ (тільки тут блокировка знімається)
             db.session.commit()
 
-            # 7. Відправка Email (після коміту, щоб не тримати базу)
             try:
                 msg = Message("Запис підтверджено", recipients=[form.email.data])
-                # Виправляємо помилку: передаємо об'єкт як 'appointment'
                 msg.html = render_template('email/received.html', 
                                          client=client, 
                                          appointment=new_appointment) 

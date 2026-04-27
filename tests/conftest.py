@@ -5,7 +5,6 @@ from app import create_app, db as _db_original
 
 @pytest.fixture(scope='session')
 def app():
-    # Силова ізоляція на рівні системи
     os.environ['DATABASE_URL'] = 'sqlite:///:memory:'
     
     app = create_app()
@@ -17,15 +16,11 @@ def app():
     })
     
     with app.app_context():
-        # Створюємо чистий двигун для тестів
         test_engine = create_engine('sqlite:///:memory:')
         
-        # ЛЕГАЛЬНА ПІДМІНА:
-        # Ми не міняємо db.engine, ми міняємо bind для сесії
         _db_original.session.remove()
         _db_original.session.configure(bind=test_engine)
         
-        # Створюємо таблиці саме на цьому новому двигуні
         _db_original.metadata.create_all(bind=test_engine)
         
         yield app

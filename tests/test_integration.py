@@ -76,7 +76,7 @@ def test_5_data_encryption_cycle_in_session(app):
     with app.app_context():
         test_client = Client(name="Степан Тестовий", email="stepan@test.com", phone="777")
         db.session.add(test_client)
-        db.session.flush() # Не комітимо!
+        db.session.flush()
         
         assert test_client._name.startswith("gAAAAA")
         assert test_client.name == "Степан Тестовий"

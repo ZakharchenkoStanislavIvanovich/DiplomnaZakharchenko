@@ -178,13 +178,10 @@ def add_service():
     name = request.form.get('name')
     description = request.form.get('description')
     
-    # Створюємо об'єкт без аргументів
     new_service = Service()
-    # Присвоюємо значення через сетери (це зашифрує дані)
     new_service.name = name
     new_service.description = description
     
-    # Поле price видаляємо, бо його немає в моделі
     db.session.add(new_service)
     db.session.commit()
     return jsonify({'status': 'success'})
@@ -194,11 +191,9 @@ def add_service():
 @admin_required
 def edit_service(id):
     service = Service.query.get_or_404(id)
-    # Оновлюємо через властивості (це перешифрує дані)
     service.name = request.form.get('name')
     service.description = request.form.get('description')
     
-    # service.price видаляємо
     db.session.commit()
     return jsonify({'status': 'success'})
 

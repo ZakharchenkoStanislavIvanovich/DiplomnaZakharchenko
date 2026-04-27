@@ -247,7 +247,6 @@ document.addEventListener("DOMContentLoaded", function () {
     
     document.addEventListener("click", () => document.querySelectorAll('.custom-options').forEach(el => el.classList.remove("show")));
 
-    // Зміна дати
     dateInput.addEventListener("change", function() {
         if (this.value) {
             document.getElementById("dateError").style.display = "none";
