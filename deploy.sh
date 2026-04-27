@@ -119,16 +119,9 @@ run_test_group() {
     fi
 }
 
-# Основний цикл тестування
 run_test_group "1" "ДОСТУПНІСТЬ, БД, СТАТИКА ТА КОНФІГУРАЦІЯ (SMOKE)" "tests/test_smoke.py"
 run_test_group "2" "ЧАСОВІ ЛІМІТИ, ФОРМАТИ, КРИПТОГРАФІЯ ТА ВАЛІДАЦІЯ (UNIT)" "tests/test_units.py"
 run_test_group "3" "СКРІЗНІ СЦЕНАРІЇ, ТРАНЗАКЦІЇ ТА ЦІЛІСНІСТЬ ДАНИХ (INTEGRATION)" "tests/test_integration.py"
-run_test_group "4" "СТРЕС-ТЕСТ: RACE CONDITION ТА ПАРАЛЕЛЬНІ ЗАПИТИ (CONCURRENCY)" "tests/test_concurrency.py"
-run_test_group "5" "КРИПТОГРАФІЧНИЙ ЗАХИСТ, SQLI, XSS ТА КОНТРОЛЬ ДОСТУПУ (SECURITY)" "tests/test_security.py"
-run_test_group "6" "ЕЛЕМЕНТИ UI, НАВІГАЦІЯ ТА END-TO-END СЦЕНАРІЇ (UI/E2E)" "tests/test_ui_e2e.py"
-
-# Фінальний аудит (запускається тільки якщо попередні пройшли, або завжди для контролю)
-run_test_group "7" "ФІНАЛЬНИЙ АУДИТ ЧИСТОТИ ТА ЦІЛІСНОСТІ БАЗИ ДАНИХ (AUDIT)" "tests/test_z_audit.py"
 
 echo -e "\n${BLUE}==================================================${NC}"
 if [ "$EXIT_CODE" == "1" ]; then

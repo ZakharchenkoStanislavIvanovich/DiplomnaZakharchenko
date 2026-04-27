@@ -1,37 +1,49 @@
 import pytest
 import os
-from app import create_app, db
 from sqlalchemy import create_engine
+from app import create_app, db as _db_original
 
 @pytest.fixture(scope='session')
 def app():
-    # 1. Силова ізоляція оточення
+    # Силова ізоляція на рівні системи
     os.environ['DATABASE_URL'] = 'sqlite:///:memory:'
     
     app = create_app()
-    
     app.config.update({
         "TESTING": True,
         "SQLALCHEMY_DATABASE_URI": "sqlite:///:memory:",
-        "SQLALCHEMY_ENGINE_OPTIONS": {} 
+        "SQLALCHEMY_ENGINE_OPTIONS": {},
+        "WTF_CSRF_ENABLED": False
     })
-
+    
     with app.app_context():
-        # 2. Створюємо чистий тестовий двигун
+        # Створюємо чистий двигун для тестів
         test_engine = create_engine('sqlite:///:memory:')
         
-        # 3. Переприв'язуємо сесію
-        db.session.remove()
-        db.session.configure(bind=test_engine)
+        # ЛЕГАЛЬНА ПІДМІНА:
+        # Ми не міняємо db.engine, ми міняємо bind для сесії
+        _db_original.session.remove()
+        _db_original.session.configure(bind=test_engine)
         
-        # 4. Створюємо таблиці (використовуємо метадані напряму, це надійніше)
-        db.metadata.create_all(bind=test_engine)
+        # Створюємо таблиці саме на цьому новому двигуні
+        _db_original.metadata.create_all(bind=test_engine)
         
         yield app
         test_engine.dispose()
 
 @pytest.fixture
-def _db(app):
+def client(app):
+    """Фікстура для імітації HTTP-запитів"""
+    return app.test_client()
+
+@pytest.fixture
+def db(app):
+    """Фікстура для доступу до бази в тестах"""
+    return _db_original
+
+@pytest.fixture(autouse=True)
+def _db_cleanup(app):
+    """Очищення бази після кожного тесту (всередині SQLite RAM)"""
     with app.app_context():
-        yield db
-        db.session.rollback()
+        yield
+        _db_original.session.rollback()
